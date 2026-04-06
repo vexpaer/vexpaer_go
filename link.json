@@ -60,6 +60,14 @@
       "columnId": "col_1"
     },
     {
+      "id": "l_1775459601417",
+      "text": "featurize",
+      "url": "https://featurize.cn/",
+      "color": "#4400ff",
+      "visible": true,
+      "columnId": "col_1"
+    },
+    {
       "id": "l_6",
       "text": "天涯书库",
       "url": "https://www.tianyabook.com/",
@@ -112,7 +120,7 @@
       "text": "安理会",
       "url": "https://www.un.org/securitycouncil/zh/",
       "color": "#4400ff",
-      "visible": true,
+      "visible": false,
       "columnId": "col_1"
     },
     {
