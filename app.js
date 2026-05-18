@@ -11,7 +11,7 @@ let state = {
         fontFamily: 'LXGW WenKai'
     }
 };
-let sideState = { todo: [], prompts: [] };
+let sideState = { todo: [], prompts: [], poem: [] };
 let activeFeature = null;
 let draggedItem = { type: null, id: null };
 let isResizingPanel = false;
@@ -64,6 +64,7 @@ function initRightPanel() {
     fetchPoem();
     renderFeatureList('todo');
     renderFeatureList('prompts');
+    renderFeatureList('poem');
     bindFeatureInputEnter('todo-input', 'todo');
     bindFeatureInputEnter('prompts-input', 'prompts');
     initRightPanelResize();
@@ -165,8 +166,9 @@ function loadSideData() {
         let parsed = JSON.parse(saved);
         sideState.todo = Array.isArray(parsed.todo) ? parsed.todo : [];
         sideState.prompts = Array.isArray(parsed.prompts) ? parsed.prompts : [];
+        sideState.poem = Array.isArray(parsed.poem) ? parsed.poem : [];
     } catch (e) {
-        sideState = { todo: [], prompts: [] };
+        sideState = { todo: [], prompts: [], poem: [] };
     }
 }
 
@@ -205,15 +207,20 @@ function toggleFeature(type) {
     activeFeature = activeFeature === type ? null : type;
     let todoBtn = document.getElementById('toggle-todo');
     let promptsBtn = document.getElementById('toggle-prompts');
+    let poemBtn = document.getElementById('toggle-poem');
     let todoPanel = document.getElementById('feature-todo');
     let promptsPanel = document.getElementById('feature-prompts');
+    let poemPanel = document.getElementById('feature-poem');
 
     todoBtn.classList.toggle('active', activeFeature === 'todo');
     promptsBtn.classList.toggle('active', activeFeature === 'prompts');
+    poemBtn.classList.toggle('active', activeFeature === 'poem');
     todoBtn.textContent = activeFeature === 'todo' ? '收起待办' : '展开待办';
     promptsBtn.textContent = activeFeature === 'prompts' ? '收起提示词' : '展开提示词';
+    poemBtn.textContent = activeFeature === 'poem' ? '收起诗词' : '展开诗词';
     todoPanel.classList.toggle('active', activeFeature === 'todo');
     promptsPanel.classList.toggle('active', activeFeature === 'prompts');
+    poemPanel.classList.toggle('active', activeFeature === 'poem');
 }
 
 function addItem(type) {
@@ -253,6 +260,29 @@ async function copyItem(type, id) {
     } catch (e) {
         alert('复制失败，请检查浏览器权限');
     }
+}
+
+function addCurrentPoem() {
+    let poemText = document.getElementById('info-poem').textContent;
+    if (!poemText || poemText === '诗词加载中...' || poemText === '今日诗词暂不可用' || poemText === '诗词: 获取失败') return;
+    sideState.poem.unshift({ id: 'poem_' + Date.now(), text: poemText });
+    saveSideData();
+    renderFeatureList('poem');
+}
+
+function exportPoemsTxt() {
+    if (!sideState.poem || sideState.poem.length === 0) {
+        alert('没有可以导出的诗词。');
+        return;
+    }
+    let content = sideState.poem.map(item => item.text).join('\n');
+    let blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement('a');
+    a.href = url;
+    a.download = 'poems.txt';
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 function renderFeatureList(type) {
