@@ -9,12 +9,6 @@ let state = {
         fontSize: 21,
         fontCssUrl: 'https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css',
         fontFamily: 'LXGW WenKai'
-    },
-    reminder: {
-        enabled: false,
-        intervalMinutes: 30,
-        message: '休息一下，喝口水吧。',
-        nextTriggerAt: 0
     }
 };
 let sideState = { todo: [], prompts: [] };
@@ -63,7 +57,6 @@ async function init() {
 }
 
 function initRightPanel() {
-    ensureReminderConfig();
     loadSideData();
     updateTime();
     setInterval(updateTime, 1000);
@@ -97,112 +90,6 @@ function ensurePoemStyle() {
     if (typeof state.poemStyle.fontFamily !== 'string') state.poemStyle.fontFamily = 'LXGW WenKai';
     state.poemStyle.fontCssUrl = state.poemStyle.fontCssUrl.trim();
     state.poemStyle.fontFamily = state.poemStyle.fontFamily.trim();
-}
-
-function ensureReminderConfig() {
-    if (!state.reminder || typeof state.reminder !== 'object') {
-        state.reminder = {
-            enabled: false,
-            intervalMinutes: 30,
-            message: '休息一下，喝口水吧。',
-            nextTriggerAt: 0
-        };
-        return;
-    }
-    state.reminder.enabled = !!state.reminder.enabled;
-    let minutes = Number(state.reminder.intervalMinutes);
-    if (Number.isNaN(minutes)) minutes = 30;
-    state.reminder.intervalMinutes = Math.max(1, Math.min(1440, Math.round(minutes)));
-    if (typeof state.reminder.message !== 'string') {
-        state.reminder.message = '休息一下，喝口水吧。';
-    }
-    state.reminder.message = state.reminder.message.trim() || '休息一下，喝口水吧。';
-    let nextAt = Number(state.reminder.nextTriggerAt);
-    state.reminder.nextTriggerAt = Number.isFinite(nextAt) ? Math.max(0, Math.round(nextAt)) : 0;
-}
-
-function scheduleNextReminder(fromNow) {
-    ensureReminderConfig();
-    let base = fromNow ? Date.now() : (state.reminder.nextTriggerAt || Date.now());
-    state.reminder.nextTriggerAt = base + state.reminder.intervalMinutes * 60 * 1000;
-}
-
-function requestReminderPermissionIfNeeded() {
-    if (!('Notification' in window)) return;
-    if (Notification.permission === 'default') {
-        Notification.requestPermission().catch(() => {});
-    }
-}
-
-function canUseSystemNotification() {
-    return 'Notification' in window && window.isSecureContext;
-}
-
-function getReminderStatusText() {
-    if (!('Notification' in window)) {
-        return '当前浏览器不支持系统通知';
-    }
-    if (!window.isSecureContext) {
-        return '当前页面不是安全上下文，请使用 http://localhost 或 https 打开';
-    }
-    if (Notification.permission === 'granted') {
-        return '系统通知已授权，可弹出 Windows 右下角提醒';
-    }
-    if (Notification.permission === 'denied') {
-        return '系统通知已被拒绝，请在浏览器站点权限里开启通知';
-    }
-    return '系统通知待授权，勾选启用提醒后会请求权限';
-}
-
-function showReminder(message) {
-    if (canUseSystemNotification() && Notification.permission === 'granted') {
-        new Notification('定时提醒', {
-            body: message,
-            tag: 'e-desktop-reminder'
-        });
-        return true;
-    }
-    return false;
-}
-
-async function testReminderNotification() {
-    if (!canUseSystemNotification()) {
-        alert('当前环境不满足系统通知条件，请使用支持通知的浏览器并通过 http://localhost 或 https 打开页面。');
-        return;
-    }
-    if (Notification.permission !== 'granted') {
-        try {
-            await Notification.requestPermission();
-        } catch (e) {}
-    }
-    if (showReminder(state.reminder.message || '这是一条测试提醒')) {
-        alert('测试通知已发送，请查看 Windows 右下角或通知中心。');
-    } else {
-        alert('通知权限未开启，请在浏览器地址栏的站点设置中允许通知。');
-    }
-}
-
-function checkReminderTick(nowTs) {
-    ensureReminderConfig();
-    if (!state.reminder.enabled) return;
-    if (!state.reminder.nextTriggerAt || state.reminder.nextTriggerAt <= nowTs) {
-        showReminder(state.reminder.message);
-        scheduleNextReminder(true);
-        saveData(false);
-    }
-}
-
-function formatReminderCountdown(nowTs) {
-    ensureReminderConfig();
-    if (!state.reminder.enabled) return '提醒已关闭';
-    if (!state.reminder.nextTriggerAt || state.reminder.nextTriggerAt <= nowTs) {
-        return '马上提醒';
-    }
-    let diffMs = state.reminder.nextTriggerAt - nowTs;
-    let totalSeconds = Math.ceil(diffMs / 1000);
-    let mins = Math.floor(totalSeconds / 60);
-    let secs = totalSeconds % 60;
-    return `还有 ${mins}分${String(secs).padStart(2, '0')}秒提醒`;
 }
 
 function applyPoemFontSource() {
@@ -289,12 +176,9 @@ function saveSideData() {
 
 function updateTime() {
     let now = new Date();
-    let nowTs = now.getTime();
-    checkReminderTick(nowTs);
     let date = now.toLocaleDateString('zh-CN', { weekday: 'long', month: '2-digit', day: '2-digit' });
     let time = now.toLocaleTimeString('zh-CN', { hour12: false });
-    let countdownText = formatReminderCountdown(nowTs);
-    document.getElementById('info-time').textContent = `${date} ${time} | ${countdownText}`;
+    document.getElementById('info-time').textContent = `${date} ${time}`;
 }
 
 async function fetchPoem() {
@@ -502,7 +386,6 @@ function sortLinksByColumn() {
 
 function saveData(render = true) {
     ensurePoemStyle();
-    ensureReminderConfig();
     sortLinksByColumn();
     localStorage.setItem('e-desktop-data', JSON.stringify(state));
     if(render) {
@@ -559,7 +442,6 @@ function closeSettings() {
 
 function renderEditor() {
     ensurePoemStyle();
-    ensureReminderConfig();
 
     // 渲染颜色编辑器
     let colorHtml = `<div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">`;
@@ -592,24 +474,6 @@ function renderEditor() {
         </label>
     </div>`;
     document.getElementById('poem-style-editor').innerHTML = poemStyleHtml;
-
-    // 渲染定时提醒编辑器
-    let reminderHtml = `<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:#2a2a2a;padding:12px 14px;border-radius:10px;">
-        <label style="display:flex;align-items:center;gap:8px;">
-            <input type="checkbox" ${state.reminder.enabled ? 'checked' : ''} onchange="updateReminderSetting('enabled', this.checked)">
-            启用提醒
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;">间隔
-            <input type="number" min="1" max="1440" step="1" value="${state.reminder.intervalMinutes}" onchange="updateReminderSetting('intervalMinutes', this.value)" style="width:100px;">
-            分钟
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;flex:1 1 320px;">提醒内容
-            <input type="text" value="${escapeHtml(state.reminder.message)}" onchange="updateReminderSetting('message', this.value)" style="width:100%;min-width:220px;">
-        </label>
-        <button class="btn-action" onclick="testReminderNotification()">测试系统通知</button>
-        <span style="color:#b9c8d8;font-size:0.92em;">${getReminderStatusText()}</span>
-    </div>`;
-    document.getElementById('reminder-editor').innerHTML = reminderHtml;
 
     // 渲染栏目编辑器
     let colHtml = `<table><tr><th width="20%">栏目ID (不可改)</th><th width="30%">栏目名称</th><th width="30%">统一更改标签颜色</th><th width="20%">操作</th></tr>`;
@@ -689,27 +553,6 @@ function updatePoemStyle(field, value) {
         state.poemStyle.fontFamily = String(value || '').trim();
     }
     saveData();
-}
-
-function updateReminderSetting(field, value) {
-    ensureReminderConfig();
-    if (field === 'enabled') {
-        state.reminder.enabled = !!value;
-        if (state.reminder.enabled) {
-            requestReminderPermissionIfNeeded();
-            scheduleNextReminder(true);
-        }
-    } else if (field === 'intervalMinutes') {
-        let minutes = Math.max(1, Math.min(1440, Number(value) || 30));
-        state.reminder.intervalMinutes = Math.round(minutes);
-        if (state.reminder.enabled) {
-            scheduleNextReminder(true);
-        }
-    } else if (field === 'message') {
-        state.reminder.message = String(value || '').trim() || '休息一下，喝口水吧。';
-    }
-    saveData();
-    updateTime();
 }
 
 // 颜色修改函数
@@ -863,7 +706,6 @@ function importJson(event) {
             if(data.columns && data.links) {
                 state = data;
                 ensurePoemStyle();
-                ensureReminderConfig();
                 saveData();
                 alert('JSON 导入加载成功！');
             } else {
@@ -880,10 +722,5 @@ function importJson(event) {
 // 页面启动
 window.onload = async function() {
     await init();
-    ensureReminderConfig();
-    if (state.reminder.enabled && !state.reminder.nextTriggerAt) {
-        scheduleNextReminder(true);
-        saveData(false);
-    }
     initRightPanel();
 };
