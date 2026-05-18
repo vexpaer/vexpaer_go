@@ -4,19 +4,21 @@ let state = {
     columns: [],
     links: [],
     colors: ["#0000ff", "#800080", "#ff0000", "#000000", "#ffffff"],
+    panelWidth: 800,
     poemStyle: {
         color: '#e8e1c8',
         fontSize: 21,
         fontCssUrl: 'https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css',
         fontFamily: 'LXGW WenKai'
-    }
+    },
+    pageVisibility: { todo: true, prompts: true, poem: true, dice: true, ai: true }
 };
-let sideState = { todo: [], prompts: [], poem: [] };
+let sideState = { todo: [], prompts: [], poem: [], dice: [], ai: [] };
 let activeFeature = null;
 let draggedItem = { type: null, id: null };
 let isResizingPanel = false;
 let resizeStartX = 0;
-let resizeStartWidth = 360;
+let resizeStartWidth = 800;
 
 // 十六进制颜色转RGB用于背景和发光效果计算
 function hexToRgb(hex) {
@@ -31,6 +33,8 @@ async function init() {
         try {
             state = JSON.parse(saved);
             if(!state.colors) state.colors = ["#0000ff", "#800080", "#ff0000", "#000000", "#ffffff"];
+            ensurePageVisibility()
+            if(typeof state.panelWidth !== 'number' || Number.isNaN(state.panelWidth)) state.panelWidth = 800;
         } catch(e) {
             state = JSON.parse(JSON.stringify(window.DEFAULT_DATA));
         }
@@ -42,6 +46,8 @@ async function init() {
             if(res.ok) {
                 state = await res.json();
                 if(!state.colors) state.colors = ["#0000ff", "#800080", "#ff0000", "#000000", "#ffffff"];
+                ensurePageVisibility()
+                if(typeof state.panelWidth !== 'number' || Number.isNaN(state.panelWidth)) state.panelWidth = 800;
                 saveData(false);
             } else {
                 throw new Error();
@@ -65,9 +71,21 @@ function initRightPanel() {
     renderFeatureList('todo');
     renderFeatureList('prompts');
     renderFeatureList('poem');
+    renderFeatureList('dice');
+    renderFeatureList('ai');
     bindFeatureInputEnter('todo-input', 'todo');
     bindFeatureInputEnter('prompts-input', 'prompts');
+    bindFeatureInputEnter('poem-input', 'poem');
+    applyPageVisibility();
     initRightPanelResize();
+}
+
+function ensurePageVisibility() {
+    const defaults = { todo: true, prompts: true, poem: true, dice: true, ai: true };
+    if (!state.pageVisibility) state.pageVisibility = {};
+    for (let key of Object.keys(defaults)) {
+        if (state.pageVisibility[key] === undefined) state.pageVisibility[key] = defaults[key];
+    }
 }
 
 function ensurePoemStyle() {
@@ -127,27 +145,29 @@ function applyPoemStyle() {
 
 function initRightPanelResize() {
     let panel = document.querySelector('.right-panel');
-    let handle = document.getElementById('right-resize-handle');
-    let savedWidth = parseInt(localStorage.getItem('e-desktop-right-width') || '360', 10);
-    if (!Number.isNaN(savedWidth) && window.innerWidth > 1100) {
-        panel.style.width = Math.max(280, Math.min(800, savedWidth)) + 'px';
+    if (!panel) return;
+    // 迁移旧版 localStorage 宽度值
+    let legacyWidth = localStorage.getItem('e-desktop-right-width');
+    if (legacyWidth !== null) {
+        let w = parseInt(legacyWidth, 10);
+        if (!Number.isNaN(w)) state.panelWidth = Math.max(280, Math.min(800, w));
+        localStorage.removeItem('e-desktop-right-width');
+        saveData(false);
     }
-
-    handle.addEventListener('mousedown', function(event) {
-        if (window.innerWidth <= 1100) return;
-        isResizingPanel = true;
-        resizeStartX = event.clientX;
-        resizeStartWidth = panel.getBoundingClientRect().width;
-        document.body.style.userSelect = 'none';
-        document.body.style.cursor = 'ew-resize';
-    });
+    if (typeof state.panelWidth !== 'number' || Number.isNaN(state.panelWidth)) {
+        state.panelWidth = 800;
+    }
+    state.panelWidth = Math.max(280, Math.min(800, state.panelWidth));
+    if (window.innerWidth > 1100) {
+        panel.style.width = state.panelWidth + 'px';
+    }
 
     window.addEventListener('mousemove', function(event) {
         if (!isResizingPanel) return;
         let delta = resizeStartX - event.clientX;
         let nextWidth = resizeStartWidth + delta;
-        let clamped = Math.max(280, Math.min(window.innerWidth * 0.7, nextWidth));
-        panel.style.width = clamped + 'px';
+        state.panelWidth = Math.max(280, Math.min(window.innerWidth * 0.7, nextWidth));
+        panel.style.width = state.panelWidth + 'px';
     });
 
     window.addEventListener('mouseup', function() {
@@ -155,8 +175,34 @@ function initRightPanelResize() {
         isResizingPanel = false;
         document.body.style.userSelect = '';
         document.body.style.cursor = '';
-        localStorage.setItem('e-desktop-right-width', Math.round(panel.getBoundingClientRect().width));
+        saveData(false);
     });
+}
+
+function startPanelResize(event) {
+    if (window.innerWidth <= 1100) return;
+    event.preventDefault();
+    let panel = document.querySelector('.right-panel');
+    if (!panel) return;
+    isResizingPanel = true;
+    resizeStartX = event.clientX;
+    resizeStartWidth = panel.getBoundingClientRect().width;
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'ew-resize';
+}
+
+function updatePanelWidth(value) {
+    let w = Math.max(280, Math.min(800, Number(value) || 800));
+    state.panelWidth = w;
+    let panel = document.querySelector('.right-panel');
+    if (panel && window.innerWidth > 1100) {
+        panel.style.width = w + 'px';
+    }
+    let range = document.getElementById('panel-width-range');
+    let input = document.getElementById('panel-width-input');
+    if (range) range.value = w;
+    if (input) input.value = w;
+    saveData(false);
 }
 
 function loadSideData() {
@@ -167,13 +213,30 @@ function loadSideData() {
         sideState.todo = Array.isArray(parsed.todo) ? parsed.todo : [];
         sideState.prompts = Array.isArray(parsed.prompts) ? parsed.prompts : [];
         sideState.poem = Array.isArray(parsed.poem) ? parsed.poem : [];
+        sideState.dice = Array.isArray(parsed.dice) ? parsed.dice : [];
+        sideState.ai = Array.isArray(parsed.ai) ? parsed.ai : [];
     } catch (e) {
-        sideState = { todo: [], prompts: [], poem: [] };
+        sideState = { todo: [], prompts: [], poem: [], dice: [], ai: [] };
     }
 }
 
 function saveSideData() {
     localStorage.setItem('e-desktop-side-data', JSON.stringify(sideState));
+}
+
+function applyPageVisibility() {
+    ensurePageVisibility();
+    ['todo', 'prompts', 'poem', 'dice', 'ai'].forEach(type => {
+        let btn = document.getElementById('toggle-' + type);
+        if (btn) btn.style.display = state.pageVisibility[type] ? '' : 'none';
+    });
+}
+
+function togglePageVisibility(key, checked) {
+    ensurePageVisibility();
+    state.pageVisibility[key] = checked;
+    saveData(false);
+    applyPageVisibility();
 }
 
 function updateTime() {
@@ -205,22 +268,15 @@ function bindFeatureInputEnter(inputId, type) {
 
 function toggleFeature(type) {
     activeFeature = activeFeature === type ? null : type;
-    let todoBtn = document.getElementById('toggle-todo');
-    let promptsBtn = document.getElementById('toggle-prompts');
-    let poemBtn = document.getElementById('toggle-poem');
-    let todoPanel = document.getElementById('feature-todo');
-    let promptsPanel = document.getElementById('feature-prompts');
-    let poemPanel = document.getElementById('feature-poem');
-
-    todoBtn.classList.toggle('active', activeFeature === 'todo');
-    promptsBtn.classList.toggle('active', activeFeature === 'prompts');
-    poemBtn.classList.toggle('active', activeFeature === 'poem');
-    todoBtn.textContent = activeFeature === 'todo' ? '收起待办' : '展开待办';
-    promptsBtn.textContent = activeFeature === 'prompts' ? '收起提示词' : '展开提示词';
-    poemBtn.textContent = activeFeature === 'poem' ? '收起诗词' : '展开诗词';
-    todoPanel.classList.toggle('active', activeFeature === 'todo');
-    promptsPanel.classList.toggle('active', activeFeature === 'prompts');
-    poemPanel.classList.toggle('active', activeFeature === 'poem');
+    let labels = { todo: '待办', prompts: '提示词', poem: '诗词', dice: '骰子', ai: 'AI' };
+    ['todo', 'prompts', 'poem', 'dice', 'ai'].forEach(t => {
+        let btn = document.getElementById('toggle-' + t);
+        let panel = document.getElementById('feature-' + t);
+        if (!btn || !panel) return;
+        btn.classList.toggle('active', activeFeature === t);
+        btn.textContent = (activeFeature === t ? '↑ ' : '↓ ') + labels[t];
+        panel.classList.toggle('active', activeFeature === t);
+    });
 }
 
 function addItem(type) {
@@ -294,8 +350,8 @@ function renderFeatureList(type) {
     }
 
     listEl.innerHTML = items.map(item => {
-        let copyBtn = type === 'prompts'
-            ? `<button class="item-btn" onclick="copyItem('prompts', '${item.id}')">复制</button>`
+        let copyBtn = (type === 'prompts' || type === 'poem')
+            ? `<button class="item-btn" onclick="copyItem('${type}', '${item.id}')">复制</button>`
             : '';
         return `<li class="item" draggable="true"
             ondragstart="startDragItem(event, '${type}', '${item.id}')"
@@ -485,6 +541,29 @@ function renderEditor() {
     colorHtml += `<input type="color" id="new-color-input" value="#00ff00" style="width:40px;height:30px;padding:2px;border-radius:4px;">
     <button class="btn-success" onclick="addColor()">添加颜色</button></div>`;
     document.getElementById('color-editor').innerHTML = colorHtml;
+
+    // 渲染页面可见性编辑器
+    ensurePageVisibility();
+    let visHtml = `<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:#2a2a2a;padding:12px 14px;border-radius:10px;">`;
+    let visLabels = { todo: '待办事项', prompts: '提示词记录', poem: '诗词记录', dice: '骰子', ai: 'AI' };
+    for (let [key, label] of Object.entries(visLabels)) {
+        visHtml += `<label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="checkbox" ${state.pageVisibility[key] ? 'checked' : ''} onchange="togglePageVisibility('${key}', this.checked)"> ${label}
+        </label>`;
+    }
+    visHtml += `</div>`;
+    document.getElementById('page-visibility-editor').innerHTML = visHtml;
+
+    // 渲染右侧面板宽度编辑器
+    let panelWidthHtml = `<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;background:#2a2a2a;padding:12px 14px;border-radius:10px;">
+        <label style="display:flex;align-items:center;gap:8px;">面板宽度
+            <input type="range" id="panel-width-range" min="280" max="800" step="10" value="${state.panelWidth}" oninput="updatePanelWidth(this.value)" style="width:160px;">
+            <input type="number" id="panel-width-input" min="280" max="800" step="10" value="${state.panelWidth}" onchange="updatePanelWidth(this.value)" style="width:80px;">
+            <span>px</span>
+        </label>
+        <span style="color:#888;font-size:0.85em;">范围 280 ~ 800，也可直接拖拽面板左边缘</span>
+    </div>`;
+    document.getElementById('panel-width-editor').innerHTML = panelWidthHtml;
 
     // 渲染每日诗词样式编辑器
     let poemStyleHtml = `<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:#2a2a2a;padding:12px 14px;border-radius:10px;">
