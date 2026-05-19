@@ -28,8 +28,8 @@
                     <button id="toggle-todo" class="expander-btn" onclick="toggleFeature('todo')">↓ 待办</button>
                     <button id="toggle-prompts" class="expander-btn" onclick="toggleFeature('prompts')">↓ 提示词</button>
                     <button id="toggle-poem" class="expander-btn" onclick="toggleFeature('poem')">↓ 诗词</button>
-                    <button id="toggle-dice" class="expander-btn" onclick="toggleFeature('dice')" style="display:none">↓ 骰子</button>
-                    <button id="toggle-ai" class="expander-btn" onclick="toggleFeature('ai')" style="display:none">↓ AI</button>
+                    <button id="toggle-dice" class="expander-btn" onclick="toggleFeature('dice')">↓ 骰子</button>
+                    <button id="toggle-ai" class="expander-btn" onclick="toggleFeature('ai')">↓ AI</button>
                 </div>
             </div>
 
@@ -65,14 +65,26 @@
                     <ul id="poem-list" class="item-list"></ul>
                 </div>
 
-                <div id="feature-dice" class="feature-content" style="display:none">
+                <div id="feature-dice" class="feature-content">
                     <h3 class="feature-title">骰子</h3>
                     <p style="color:#888;">功能开发中...</p>
                 </div>
 
-                <div id="feature-ai" class="feature-content" style="display:none">
-                    <h3 class="feature-title">AI</h3>
-                    <p style="color:#888;">功能开发中...</p>
+                <div id="feature-ai" class="feature-content">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3 class="feature-title">AI</h3>
+                        <span id="ai-chat-status" style="font-size:0.8em; color:#888;">当前: 未保存</span>
+                    </div>
+                    <div id="ai-chat-container" class="chat-container">
+                        <div class="chat-message system">提示：输入 /new 开新对话，/save 保存，/delete 删除。</div>
+                    </div>
+                    <div class="feature-input-row">
+                        <textarea id="ai-input" placeholder="输入消息 (Enter发送, Shift+Enter换行)..."></textarea>
+                        <button onclick="sendAiMessage()" style="align-self: stretch;">发送</button>
+                    </div>
+                    
+                    <div style="margin-top: 10px; font-size: 0.9em; color:#aaa;">已保存对话：</div>
+                    <ul id="ai-list" class="item-list" style="max-height: 150px; flex-shrink: 0;"></ul>
                 </div>
             </div>
         </aside>
@@ -96,6 +108,9 @@
 
             <h2 class="section-title">🎨 颜色管理</h2>
             <div id="color-editor"></div>
+
+            <h2 class="section-title">🤖 AI 配置</h2>
+            <div id="ai-config-editor"></div>
 
             <h2 class="section-title">页面功能</h2>
             <div id="page-visibility-editor"></div>

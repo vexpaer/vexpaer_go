@@ -280,6 +280,59 @@ button:hover { background: #555; }
     flex: 1;
     min-width: 0;
 }
+.feature-input-row textarea {
+    flex: 1;
+    min-width: 0;
+    min-height: 40px;
+    max-height: 120px;
+    resize: vertical;
+    border: 1px solid #454545;
+    background-color: #212121;
+    color: #dedede;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.9em;
+}
+
+.chat-container {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid #3a3a3a;
+    border-radius: 10px;
+    background: #171717;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.chat-message {
+    padding: 8px 12px;
+    border-radius: 8px;
+    max-width: 85%;
+    word-break: break-word;
+    font-size: 0.95em;
+    line-height: 1.4;
+}
+.chat-message.system {
+    color: #888;
+    align-self: center;
+    font-size: 0.85em;
+    background: none;
+}
+.chat-message.user {
+    background: #2b5d3a;
+    color: #fff;
+    align-self: flex-end;
+    border-bottom-right-radius: 2px;
+}
+.chat-message.ai {
+    background: #2a2a2a;
+    color: #fff;
+    align-self: flex-start;
+    border-bottom-left-radius: 2px;
+}
+
 .item-list {
     list-style: none;
     margin: 0;

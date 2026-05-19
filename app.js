@@ -11,10 +11,12 @@ let state = {
         fontCssUrl: 'https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css',
         fontFamily: 'LXGW WenKai'
     },
-    pageVisibility: { todo: true, prompts: true, poem: true, dice: true, ai: true }
+    pageVisibility: { todo: true, prompts: true, poem: true, dice: true, ai: true },
+    aiConfig: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' }
 };
 let sideState = { todo: [], prompts: [], poem: [], dice: [], ai: [] };
 let activeFeature = null;
+let currentAiChat = { id: null, messages: [] };
 let draggedItem = { type: null, id: null };
 let isResizingPanel = false;
 let resizeStartX = 0;
@@ -33,6 +35,8 @@ async function init() {
         try {
             state = JSON.parse(saved);
             if(!state.colors) state.colors = ["#0000ff", "#800080", "#ff0000", "#000000", "#ffffff"];
+            if(!state.aiConfig) state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' };
+            if(!state.aiConfig) state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' };
             ensurePageVisibility()
             if(typeof state.panelWidth !== 'number' || Number.isNaN(state.panelWidth)) state.panelWidth = 800;
         } catch(e) {
@@ -292,6 +296,10 @@ function addItem(type) {
 function deleteItem(type, id) {
     sideState[type] = sideState[type].filter(item => item.id !== id);
     saveSideData();
+    if (type === 'ai' && currentAiChat.id === id) {
+        currentAiChat = { id: null, messages: [] };
+        renderAiChat();
+    }
     renderFeatureList(type);
 }
 
@@ -343,6 +351,8 @@ function exportPoemsTxt() {
 
 function renderFeatureList(type) {
     let listEl = document.getElementById(type + '-list');
+    if (!listEl) return;
+    
     let items = sideState[type];
     if (!items.length) {
         listEl.innerHTML = `<li class="item-empty">暂无内容</li>`;
@@ -554,6 +564,21 @@ function renderEditor() {
     visHtml += `</div>`;
     document.getElementById('page-visibility-editor').innerHTML = visHtml;
 
+    // 渲染 AI 配置编辑器
+    if(!state.aiConfig) state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' };
+    let aiConfigHtml = `<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:#2a2a2a;padding:12px 14px;border-radius:10px;">
+        <label style="display:flex;align-items:center;gap:8px;flex:1 1 100%;">API Base URL
+            <input type="text" id="ai-baseUrl" placeholder="https://api.openai.com/v1" value="${escapeHtml(state.aiConfig.baseUrl)}" onchange="updateAiConfig('baseUrl', this.value)" style="flex:1;">
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;flex:1 1 100%;">模型 (Model)
+            <input type="text" id="ai-model" placeholder="gpt-3.5-turbo" value="${escapeHtml(state.aiConfig.model)}" onchange="updateAiConfig('model', this.value)" style="flex:1;">
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;flex:1 1 100%;">API Key
+            <input type="password" id="ai-apiKey" placeholder="sk-..." value="${escapeHtml(state.aiConfig.apiKey)}" onchange="updateAiConfig('apiKey', this.value)" style="flex:1;">
+        </label>
+    </div>`;
+    document.getElementById('ai-config-editor').innerHTML = aiConfigHtml;
+
     // 渲染右侧面板宽度编辑器
     let panelWidthHtml = `<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;background:#2a2a2a;padding:12px 14px;border-radius:10px;">
         <label style="display:flex;align-items:center;gap:8px;">面板宽度
@@ -637,6 +662,12 @@ function hexToBrightness(hex) {
     return Math.round(((parseInt(rgb[0]) * 299) +
               (parseInt(rgb[1]) * 587) +
               (parseInt(rgb[2]) * 114)) / 1000);
+}
+
+function updateAiConfig(field, value) {
+    if(!state.aiConfig) state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' };
+    state.aiConfig[field] = value.trim();
+    saveData(false);
 }
 
 function updatePoemStylePreview(value) {
@@ -815,6 +846,8 @@ function importJson(event) {
             if(data.columns && data.links) {
                 state = data;
                 ensurePoemStyle();
+                ensurePageVisibility();
+                if(!state.aiConfig) state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' };
                 saveData();
                 alert('JSON 导入加载成功！');
             } else {
@@ -828,8 +861,188 @@ function importJson(event) {
     reader.readAsText(file);
 }
 
+// ============== AI Chat 功能 ==============
+function initAiInput() {
+    let aiInput = document.getElementById('ai-input');
+    if (!aiInput) return;
+    aiInput.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            sendAiMessage();
+        }
+    });
+}
+
+function processAiCommand(text) {
+    let cmd = text.trim();
+    if (cmd === '/new') {
+        currentAiChat = { id: null, messages: [] };
+        renderAiChat();
+        return true;
+    }
+    if (cmd === '/save') {
+        if (currentAiChat.messages.length === 0) {
+            alert('当前对话为空，无法保存');
+            return true;
+        }
+        if (!currentAiChat.id) {
+            currentAiChat.id = 'ai_' + Date.now();
+            let title = currentAiChat.messages.find(m => m.role === 'user')?.content || '新对话';
+            title = title.substring(0, 15) + (title.length > 15 ? '...' : '');
+            sideState.ai.unshift({ id: currentAiChat.id, text: title, messages: JSON.parse(JSON.stringify(currentAiChat.messages)) });
+        } else {
+            let existing = sideState.ai.find(c => c.id === currentAiChat.id);
+            if (existing) {
+                existing.messages = JSON.parse(JSON.stringify(currentAiChat.messages));
+            }
+        }
+        saveSideData();
+        renderFeatureList('ai');
+        renderAiChat();
+        return true;
+    }
+    if (cmd === '/delete') {
+        if (currentAiChat.id) {
+            deleteItem('ai', currentAiChat.id);
+        }
+        currentAiChat = { id: null, messages: [] };
+        renderAiChat();
+        return true;
+    }
+    return false;
+}
+
+function appendAiMessage(role, content) {
+    currentAiChat.messages.push({ role, content });
+    renderAiChat();
+}
+
+async function sendAiMessage() {
+    let input = document.getElementById('ai-input');
+    let text = input.value.trim();
+    if (!text) return;
+    
+    input.value = '';
+    
+    if (processAiCommand(text)) {
+        return;
+    }
+
+    appendAiMessage('user', text);
+    
+    if (!state.aiConfig || !state.aiConfig.apiKey) {
+        appendAiMessage('system', '未配置 API Key，请点击 ⚙️ 进入设置进行配置。');
+        return;
+    }
+    
+    let loadingIndex = currentAiChat.messages.length;
+    currentAiChat.messages.push({ role: 'ai', content: '...', loading: true });
+    renderAiChat();
+
+    let baseUrl = state.aiConfig.baseUrl || 'https://api.openai.com/v1';
+    if (!baseUrl.endsWith('/')) baseUrl += '/';
+    let url = baseUrl + 'chat/completions';
+    
+    let apiMessages = currentAiChat.messages
+        .filter(m => m.role === 'user' || m.role === 'ai')
+        .filter(m => !m.loading)
+        .map(m => ({ role: m.role === 'ai' ? 'assistant' : m.role, content: m.content }));
+
+    try {
+        let response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${state.aiConfig.apiKey}`
+            },
+            body: JSON.stringify({
+                model: state.aiConfig.model || 'gpt-3.5-turbo',
+                messages: apiMessages
+            })
+        });
+        
+        let result = await response.json();
+        currentAiChat.messages[loadingIndex].loading = false;
+        
+        if (response.ok && result.choices && result.choices.length > 0) {
+            currentAiChat.messages[loadingIndex].content = result.choices[0].message.content;
+        } else {
+            currentAiChat.messages[loadingIndex].content = `错误: ${result.error?.message || '未知错误'}`;
+        }
+    } catch (e) {
+        currentAiChat.messages[loadingIndex].loading = false;
+        currentAiChat.messages[loadingIndex].content = `请求失败: ${e.message}`;
+    }
+    renderAiChat();
+}
+
+function renderAiChat() {
+    let chatContainer = document.getElementById('ai-chat-container');
+    if (!chatContainer) return;
+    
+    let statusEl = document.getElementById('ai-chat-status');
+    if (statusEl) {
+        statusEl.textContent = currentAiChat.id ? '当前: 已保存' : '当前: 未保存';
+    }
+
+    if (currentAiChat.messages.length === 0) {
+        chatContainer.innerHTML = `<div class="chat-message system">提示：输入 /new 开新对话，/save 保存，/delete 删除。</div>`;
+        return;
+    }
+    
+    let html = '';
+    currentAiChat.messages.forEach(m => {
+        let cls = m.role === 'user' ? 'user' : (m.role === 'system' ? 'system' : 'ai');
+        let content = escapeHtml(m.content).replace(/\n/g, '<br>');
+        html += `<div class="chat-message ${cls}">${content}</div>`;
+    });
+    chatContainer.innerHTML = html;
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+function loadSavedAiChat(id) {
+    let chat = sideState.ai.find(c => c.id === id);
+    if (chat) {
+        currentAiChat = {
+            id: chat.id,
+            messages: JSON.parse(JSON.stringify(chat.messages || []))
+        };
+        renderAiChat();
+    }
+}
+
+// 覆写原版的 renderFeatureList 对 ai 特殊处理
+let originalRenderFeatureList = renderFeatureList;
+renderFeatureList = function(type) {
+    if (type === 'ai') {
+        let listEl = document.getElementById('ai-list');
+        if (!listEl) return;
+        let items = sideState[type];
+        if (!items.length) {
+            listEl.innerHTML = `<li class="item-empty">暂无保存的对话</li>`;
+            return;
+        }
+        listEl.innerHTML = items.map(item => {
+            return `<li class="item" draggable="true"
+                ondragstart="startDragItem(event, '${type}', '${item.id}')"
+                ondragover="dragOverItem(event)"
+                ondragenter="dragEnterItem(event)"
+                ondragleave="dragLeaveItem(event)"
+                ondrop="dropItem(event, '${type}', '${item.id}')"
+                ondragend="dragEndItem(event)">
+                <span style="color:#8ea6c0">☰</span>
+                <span class="item-text" style="cursor:pointer; color:#7ec1f1;" title="点击加载此对话" onclick="loadSavedAiChat('${item.id}')">${escapeHtml(item.text)}</span>
+                <button class="item-btn delete" onclick="deleteItem('${type}', '${item.id}')">删除</button>
+            </li>`;
+        }).join('');
+    } else {
+        originalRenderFeatureList(type);
+    }
+}
+
 // 页面启动
 window.onload = async function() {
     await init();
     initRightPanel();
+    initAiInput();
 };
