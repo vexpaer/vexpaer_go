@@ -1128,56 +1128,59 @@ let isDiceLoading = false;
 async function handleDiceScene(isActive) {
     const container = document.getElementById('dice-container');
     const resultDiv = document.getElementById('dice-result');
-    
-    if (isActive) {
-        if (!diceBoxInstance && !isDiceLoading) {
-            isDiceLoading = true;
-            try {
-                // 动态引入 @3d-dice/dice-box 包
-                const { default: DiceBox } = await import('https://unpkg.com/@3d-dice/dice-box@1.1.4/dist/dice-box.es.min.js');
-                diceBoxInstance = new DiceBox({
-                    container: "#dice-container",
-                    assetPath: 'https://unpkg.com/@3d-dice/dice-box@1.1.4/dist/assets/', // 需提供包里的资源路径
-                    theme: 'default',
-                    themeColor: '#123456',
-                    scale: 6,
-                    gravity: 2,
-                    friction: 0.8
-                });
-                await diceBoxInstance.init();
-                
-                // 骰子停稳后结算
-                diceBoxInstance.onRollComplete = (results) => {
-                    if (results && results.length > 0) {
-                        const total = results.reduce((sum, d) => sum + d.value, 0);
-                        resultDiv.textContent = '总计: ' + total;
-                        resultDiv.style.display = 'block';
-                    }
-                };
-            } catch (err) {
-                console.error("DiceBox load error:", err);
-                container.innerHTML = '<p style="color:red; text-align:center; padding: 20px;">无法加载 3D 骰子，请检查网络</p>';
-            }
-            isDiceLoading = false;
-        }
-        
-        resultDiv.style.display = 'none';
-        
-        if (diceBoxInstance && !isDiceLoading) {
-            // 清理上一轮，然后丢掷新的
-            diceBoxInstance.clear();
-            const count = state.diceConfig?.count || 1;
-            const type = state.diceConfig?.type || 'd6';
-            const notation = `${count}${type}`;
-            diceBoxInstance.roll(notation);
-        }
-    } else {
-        // 关闭场景，清理已有的骰子以防遮挡或性能问题
+    if (!container) return;
+
+    if (!isActive) {
         if (diceBoxInstance) {
-            diceBoxInstance.clear();
+            try { diceBoxInstance.clear(); } catch (e) {}
         }
-        resultDiv.style.display = 'none';
+        if (resultDiv) resultDiv.style.display = 'none';
+        return;
     }
+
+    if (resultDiv) resultDiv.style.display = 'none';
+
+    if (!diceBoxInstance && !isDiceLoading) {
+        isDiceLoading = true;
+        try {
+            const { default: DiceBox } = await import('https://unpkg.com/@3d-dice/dice-box@1.1.4/dist/dice-box.es.min.js');
+            diceBoxInstance = new DiceBox({
+                container: "#dice-container",
+                assetPath: 'public/assets/',
+                theme: 'default',
+                scale: 6,
+                gravity: 2,
+                friction: 0.8
+            });
+            diceBoxInstance.onRollComplete = (results) => {
+                if (!resultDiv) return;
+                if (results && results.length > 0) {
+                    const total = results.reduce((sum, d) => sum + (d.value || 0), 0);
+                    resultDiv.textContent = '总计: ' + total;
+                    resultDiv.style.display = 'block';
+                }
+            };
+            await diceBoxInstance.init();
+        } catch (err) {
+            console.error("DiceBox load error:", err);
+            container.innerHTML = '<p style="color:#ff8a8a; text-align:center; padding: 20px; line-height:1.6;">无法加载 3D 骰子。<br>请用本地服务器打开（如 <code>npx http-server</code> 或 <code>python -m http.server</code>），<br>并确认 <code>public/assets/</code> 目录存在。</p>';
+            isDiceLoading = false;
+            return;
+        }
+        isDiceLoading = false;
+    }
+
+    if (diceBoxInstance) rollDice();
+}
+
+function rollDice() {
+    if (!diceBoxInstance || isDiceLoading) return;
+    const resultDiv = document.getElementById('dice-result');
+    if (resultDiv) resultDiv.style.display = 'none';
+    try { diceBoxInstance.clear(); } catch (e) {}
+    const count = state.diceConfig?.count || 1;
+    const type = state.diceConfig?.type || 'd6';
+    diceBoxInstance.roll(`${count}${type}`);
 }
 
 // 页面启动
