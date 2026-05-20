@@ -1146,7 +1146,7 @@ async function handleDiceScene(isActive) {
             const { default: DiceBox } = await import('https://unpkg.com/@3d-dice/dice-box@1.1.4/dist/dice-box.es.min.js');
             diceBoxInstance = new DiceBox({
                 container: "#dice-container",
-                assetPath: '/public/assets/', // 指向本地刚复制出来的 assets 目录（前导 / 必须，Worker 内部 origin 无尾斜杠）
+                assetPath: new URL('public/assets/', document.baseURI).href, // 用绝对 URL，兼容 GitHub Pages 子路径部署
                 theme: 'default',
                 scale: 6,
                 gravity: 2,
