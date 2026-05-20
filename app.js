@@ -12,7 +12,8 @@ let state = {
         fontFamily: 'LXGW WenKai'
     },
     pageVisibility: { todo: true, prompts: true, poem: true, dice: true, ai: true },
-    aiConfig: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' }
+    aiConfig: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' },
+    diceConfig: { count: 3, type: 'd6' }
 };
 let sideState = { todo: [], prompts: [], poem: [], dice: [], ai: [] };
 let activeFeature = null;
@@ -36,7 +37,7 @@ async function init() {
             state = JSON.parse(saved);
             if(!state.colors) state.colors = ["#0000ff", "#800080", "#ff0000", "#000000", "#ffffff"];
             if(!state.aiConfig) state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' };
-            if(!state.aiConfig) state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' };
+            if(!state.diceConfig) state.diceConfig = { count: 1, type: 'd6' };
             ensurePageVisibility()
             if(typeof state.panelWidth !== 'number' || Number.isNaN(state.panelWidth)) state.panelWidth = 800;
         } catch(e) {
@@ -281,6 +282,10 @@ function toggleFeature(type) {
         btn.textContent = (activeFeature === t ? '↑ ' : '↓ ') + labels[t];
         panel.classList.toggle('active', activeFeature === t);
     });
+
+    if (type === 'dice' || activeFeature !== 'dice') {
+        handleDiceScene(activeFeature === 'dice');
+    }
 }
 
 function addItem(type) {
@@ -536,6 +541,13 @@ function closeSettings() {
     document.getElementById('settings-modal').style.display = 'none';
 }
 
+window.collapsedTagCols = window.collapsedTagCols || {};
+window.toggleTagGroup = function(colId) {
+    if (colId === 'null') colId = null;
+    window.collapsedTagCols[colId] = !window.collapsedTagCols[colId];
+    renderEditor();
+};
+
 function renderEditor() {
     ensurePoemStyle();
 
@@ -565,7 +577,8 @@ function renderEditor() {
     document.getElementById('page-visibility-editor').innerHTML = visHtml;
 
     // 渲染 AI 配置编辑器
-    if(!state.aiConfig) state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' };
+    if(!state.aiConfig) state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '', systemPrompt: '' };
+    if(state.aiConfig.systemPrompt === undefined) state.aiConfig.systemPrompt = '';
     let aiConfigHtml = `<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:#2a2a2a;padding:12px 14px;border-radius:10px;">
         <label style="display:flex;align-items:center;gap:8px;flex:1 1 100%;">API Base URL
             <input type="text" id="ai-baseUrl" placeholder="https://api.openai.com/v1" value="${escapeHtml(state.aiConfig.baseUrl)}" onchange="updateAiConfig('baseUrl', this.value)" style="flex:1;">
@@ -576,8 +589,30 @@ function renderEditor() {
         <label style="display:flex;align-items:center;gap:8px;flex:1 1 100%;">API Key
             <input type="password" id="ai-apiKey" placeholder="sk-..." value="${escapeHtml(state.aiConfig.apiKey)}" onchange="updateAiConfig('apiKey', this.value)" style="flex:1;">
         </label>
+        <label style="display:flex;align-items:center;gap:8px;flex:1 1 100%;">系统提示词 (System Prompt)
+            <textarea id="ai-systemPrompt" placeholder="You are a helpful assistant." onchange="updateAiConfig('systemPrompt', this.value)" style="flex:1; height: 60px; font-family: inherit; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #333; color: white;">${escapeHtml(state.aiConfig.systemPrompt)}</textarea>
+        </label>
     </div>`;
     document.getElementById('ai-config-editor').innerHTML = aiConfigHtml;
+
+    // 渲染骰子配置编辑器
+    if(!state.diceConfig) state.diceConfig = { count: 1, type: 'd6' };
+    let diceConfigHtml = `<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:#2a2a2a;padding:12px 14px;border-radius:10px;">
+        <label style="display:flex;align-items:center;gap:8px;">骰子数量
+            <input type="number" id="dice-count" min="1" max="20" placeholder="1" value="${state.diceConfig.count}" onchange="updateDiceConfig('count', this.value)" style="width:80px;">
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;">骰子类型
+            <select id="dice-type" onchange="updateDiceConfig('type', this.value)" style="padding:4px; border-radius:4px; border:1px solid #555; background:#333; color:white;">
+                <option value="d4" ${state.diceConfig.type === 'd4' ? 'selected' : ''}>D4 (四面)</option>
+                <option value="d6" ${state.diceConfig.type === 'd6' ? 'selected' : ''}>D6 (六面)</option>
+                <option value="d8" ${state.diceConfig.type === 'd8' ? 'selected' : ''}>D8 (八面)</option>
+                <option value="d10" ${state.diceConfig.type === 'd10' ? 'selected' : ''}>D10 (十面)</option>
+                <option value="d12" ${state.diceConfig.type === 'd12' ? 'selected' : ''}>D12 (十二面)</option>
+                <option value="d20" ${state.diceConfig.type === 'd20' ? 'selected' : ''}>D20 (二十面)</option>
+            </select>
+        </label>
+    </div>`;
+    document.getElementById('dice-config-editor').innerHTML = diceConfigHtml;
 
     // 渲染右侧面板宽度编辑器
     let panelWidthHtml = `<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;background:#2a2a2a;padding:12px 14px;border-radius:10px;">
@@ -632,7 +667,28 @@ function renderEditor() {
 
     // 渲染标签编辑器
     let linkHtml = `<table><tr><th width="20%">文本名称</th><th width="25%">重定向链接URL</th><th width="15%">主题色</th><th width="5%">显示</th><th width="15%">所属栏目</th><th width="20%">操作</th></tr>`;
+    
+    let lastColumnId = '___INITIAL_NONE___';
+    
     state.links.forEach((l, idx) => {
+        if (l.columnId !== lastColumnId) {
+            lastColumnId = l.columnId;
+            let currentColumn = state.columns.find(c => c.id === lastColumnId);
+            let colName = currentColumn ? currentColumn.name : '未分配栏目';
+            let toggleId = lastColumnId === null ? 'null' : lastColumnId;
+            let isCollapsed = window.collapsedTagCols && window.collapsedTagCols[toggleId];
+            
+            linkHtml += `<tr style="background:#444; border-top: 2px solid #555;">
+                <td colspan="6" style="text-align:left; cursor:pointer; padding: 8px;" onclick="window.toggleTagGroup('${toggleId}')">
+                    <span style="display:inline-block; width: 20px;">${isCollapsed ? '▶' : '▼'}</span>
+                    <strong>${escapeHtml(colName)}</strong>
+                </td>
+            </tr>`;
+        }
+        
+        let toggleIdCheck = l.columnId === null ? 'null' : l.columnId;
+        if (window.collapsedTagCols && window.collapsedTagCols[toggleIdCheck]) return;
+
         let colOpts = state.columns.map(c => `<option value="${c.id}" ${l.columnId===c.id?'selected':''}>${c.name}</option>`).join('');
         let colorOpts = state.colors.map(color => `<option value="${color}" ${l.color===color?'selected':''} style="background-color:${color};color:${hexToBrightness(color)>128?'#000':'#fff'}">${color}</option>`).join('');
 
@@ -667,6 +723,18 @@ function hexToBrightness(hex) {
 function updateAiConfig(field, value) {
     if(!state.aiConfig) state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' };
     state.aiConfig[field] = value.trim();
+    saveData(false);
+}
+
+function updateDiceConfig(field, value) {
+    if(!state.diceConfig) state.diceConfig = { count: 1, type: 'd6' };
+    if(field === 'count') {
+        let count = parseInt(value, 10);
+        if(isNaN(count) || count < 1) count = 1;
+        state.diceConfig.count = count;
+    } else {
+        state.diceConfig.type = value;
+    }
     saveData(false);
 }
 
@@ -948,6 +1016,10 @@ async function sendAiMessage() {
         .filter(m => !m.loading)
         .map(m => ({ role: m.role === 'ai' ? 'assistant' : m.role, content: m.content }));
 
+    if (state.aiConfig.systemPrompt) {
+        apiMessages.unshift({ role: 'system', content: state.aiConfig.systemPrompt });
+    }
+
     try {
         let response = await fetch(url, {
             method: 'POST',
@@ -1037,6 +1109,65 @@ renderFeatureList = function(type) {
         }).join('');
     } else {
         originalRenderFeatureList(type);
+    }
+}
+
+// --- 骰子 3D 场景控制 ---
+let diceBoxInstance = null;
+let isDiceLoading = false;
+
+async function handleDiceScene(isActive) {
+    const container = document.getElementById('dice-container');
+    const resultDiv = document.getElementById('dice-result');
+    
+    if (isActive) {
+        if (!diceBoxInstance && !isDiceLoading) {
+            isDiceLoading = true;
+            try {
+                // 动态引入 @3d-dice/dice-box 包
+                const { default: DiceBox } = await import('https://unpkg.com/@3d-dice/dice-box@1.1.4/dist/dice-box.es.min.js');
+                diceBoxInstance = new DiceBox({
+                    container: "#dice-container",
+                    assetPath: 'https://unpkg.com/@3d-dice/dice-box@1.1.4/dist/assets/', // 需提供包里的资源路径
+                    theme: 'default',
+                    themeColor: '#123456',
+                    scale: 6,
+                    gravity: 2,
+                    friction: 0.8
+                });
+                await diceBoxInstance.init();
+                
+                // 骰子停稳后结算
+                diceBoxInstance.onRollComplete = (results) => {
+                    if (results && results.length > 0) {
+                        const total = results.reduce((sum, d) => sum + d.value, 0);
+                        resultDiv.textContent = '总计: ' + total;
+                        resultDiv.style.display = 'block';
+                    }
+                };
+            } catch (err) {
+                console.error("DiceBox load error:", err);
+                container.innerHTML = '<p style="color:red; text-align:center; padding: 20px;">无法加载 3D 骰子，请检查网络</p>';
+            }
+            isDiceLoading = false;
+        }
+        
+        resultDiv.style.display = 'none';
+        
+        if (diceBoxInstance && !isDiceLoading) {
+            // 清理上一轮，然后丢掷新的
+            diceBoxInstance.clear();
+            const count = state.diceConfig?.count || 1;
+            const type = state.diceConfig?.type || 'd6';
+            const notation = `${count}${type}`;
+            diceBoxInstance.roll(notation);
+        }
+    } else {
+        // 关闭场景，清理已有的骰子以防遮挡或性能问题
+        if (diceBoxInstance) {
+            diceBoxInstance.clear();
+        }
+        resultDiv.style.display = 'none';
     }
 }
 

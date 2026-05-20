@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@3d-dice/dice-box": "^1.1.4"
+  }
+}

@@ -65,9 +65,10 @@
                     <ul id="poem-list" class="item-list"></ul>
                 </div>
 
-                <div id="feature-dice" class="feature-content">
-                    <h3 class="feature-title">骰子</h3>
-                    <p style="color:#888;">功能开发中...</p>
+                <div id="feature-dice" class="feature-content" style="position: relative; overflow: hidden; height: 300px; padding: 0;">
+                    <h3 class="feature-title" style="position: absolute; top: 10px; left: 10px; z-index: 10; text-shadow: 1px 1px 2px #000;">骰子</h3>
+                    <div id="dice-container" style="width: 100%; height: 100%; background: #111; border-radius: 8px;"></div>
+                    <div id="dice-result" style="position: absolute; top: 10px; right: 10px; z-index: 10; font-size: 1.2em; font-weight: bold; color: #fff; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 4px; display: none;"></div>
                 </div>
 
                 <div id="feature-ai" class="feature-content">
@@ -111,6 +112,9 @@
 
             <h2 class="section-title">🤖 AI 配置</h2>
             <div id="ai-config-editor"></div>
+
+            <h2 class="section-title">🎲 骰子配置</h2>
+            <div id="dice-config-editor"></div>
 
             <h2 class="section-title">页面功能</h2>
             <div id="page-visibility-editor"></div>
