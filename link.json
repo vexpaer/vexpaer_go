@@ -124,17 +124,17 @@
       "columnId": "col_1"
     },
     {
-      "id": "l_1772374417655",
-      "text": "一元",
-      "url": "一元.com",
+      "id": "l_1777696414846",
+      "text": "数据胶囊",
+      "url": "https://data.cstcloud.cn/",
       "color": "#4400ff",
       "visible": true,
       "columnId": "col_1"
     },
     {
-      "id": "l_1773124423747",
-      "text": "notebook",
-      "url": "https://notebooklm.google.com/",
+      "id": "l_1772374168795",
+      "text": "dpsk",
+      "url": "https://chat.deepseek.com/",
       "color": "#002766",
       "visible": true,
       "columnId": "col_1772373746383"
@@ -156,9 +156,17 @@
       "columnId": "col_1772373746383"
     },
     {
-      "id": "l_1772374168795",
-      "text": "dpsk",
-      "url": "https://chat.deepseek.com/",
+      "id": "l_1773124423747",
+      "text": "notebook",
+      "url": "https://notebooklm.google.com/",
+      "color": "#002766",
+      "visible": true,
+      "columnId": "col_1772373746383"
+    },
+    {
+      "id": "l_1777517113230",
+      "text": "dpsk api",
+      "url": "https://www.deepseek.com/",
       "color": "#002766",
       "visible": true,
       "columnId": "col_1772373746383"
@@ -193,6 +201,14 @@
       "url": "https://chatglm.cn/",
       "color": "#002766",
       "visible": true,
+      "columnId": "col_1772373746383"
+    },
+    {
+      "id": "l_1776090492494",
+      "text": "qwen",
+      "url": "https://chat.qwen.ai/",
+      "color": "#002766",
+      "visible": false,
       "columnId": "col_1772373746383"
     },
     {
@@ -787,5 +803,97 @@
       "visible": false,
       "columnId": "col_hidden"
     }
-  ]
+  ],
+  "poemStyle": {
+    "color": "#ffffff",
+    "fontSize": 33,
+    "fontCssUrl": "https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css",
+    "fontFamily": ""
+  },
+  "reminder": {
+    "enabled": false,
+    "intervalMinutes": 20,
+    "message": "眼睛要瞎了",
+    "nextTriggerAt": 1776775498804
+  },
+  "pageVisibility": {
+    "todo": true,
+    "prompts": true,
+    "poem": true,
+    "dice": true,
+    "ai": true
+  },
+  "panelWidth": 800,
+  "aiConfig": {
+    "baseUrl": "https://api.deepseek.com",
+    "model": "deepseek-v4-flash",
+    "apiKey": "sk-a3a4380130ec41e98ffca92e24e6dd0a",
+    "systemPrompt": ""
+  },
+  "diceConfig": {
+    "count": 3,
+    "type": "d6"
+  },
+  "sideState": {
+    "todo": [
+      {
+        "id": "todo_1777543708279",
+        "text": "/compact"
+      },
+      {
+        "id": "todo_1777543716827",
+        "text": "/clear"
+      },
+      {
+        "id": "todo_1777543727770",
+        "text": "/rewind"
+      },
+      {
+        "id": "todo_1777543741820",
+        "text": "/sub-agent"
+      }
+    ],
+    "prompts": [
+      {
+        "id": "prompts_1773212464113",
+        "text": "找一些与这段匹配的文献,必须是已发表引用多的论文,给出链接,至少10篇"
+      },
+      {
+        "id": "prompts_1776871053443",
+        "text": "我在华南理工大学,大三下,均分87,有一篇scientific data 的data descriptor文章,雅思7分,我想申请直博,在美国什么水平,生物医学工程,做eeg脑电方向"
+      },
+      {
+        "id": "prompts_1777127170308",
+        "text": "寻找大学生物医学工程系官网以及这个学校做与非侵入脑机接口,eeg研究相关的老师的网站,给我可访问的链接"
+      }
+    ],
+    "poem": [
+      {
+        "id": "poem_1779271028397",
+        "text": "满园花菊郁金黄，中有孤丛色似霜。 —— 白居易《重阳席上赋白菊》"
+      },
+      {
+        "id": "poem_1779200294817",
+        "text": "闲云潭影日悠悠，物换星移几度秋。 —— 王勃《滕王阁序》"
+      },
+      {
+        "id": "poem_1779196589650",
+        "text": "小桃灼灼柳鬖鬖，春色满江南。 —— 黄庭坚《诉衷情·小桃灼灼柳鬖鬖》"
+      },
+      {
+        "id": "poem_1779117747517",
+        "text": "落花水香茅舍晚，断桥头卖鱼人散。 —— 马致远《寿阳曲·远浦帆归》"
+      },
+      {
+        "id": "poem_1779117723673",
+        "text": "惜别伤离方寸乱，忘了临行，酒盏深和浅。"
+      },
+      {
+        "id": "poem_1779117675493",
+        "text": "落花水香茅舍晚，断桥头卖鱼人散。 —— 马致远《寿阳曲·远浦帆归》"
+      }
+    ],
+    "dice": [],
+    "ai": []
+  }
 }

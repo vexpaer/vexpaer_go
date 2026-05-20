@@ -895,7 +895,8 @@ function dropLink(event, id) {
 
 // 导入与导出JSON功能
 function exportJson() {
-    let dataStr = JSON.stringify(state, null, 2);
+    let exportData = Object.assign({}, state, { sideState: sideState });
+    let dataStr = JSON.stringify(exportData, null, 2);
     let blob = new Blob([dataStr], {type: "application/json"});
     let url = URL.createObjectURL(blob);
     let a = document.createElement('a');
@@ -912,6 +913,14 @@ function importJson(event) {
         try {
             let data = JSON.parse(e.target.result);
             if(data.columns && data.links) {
+                if (data.sideState) {
+                    sideState = data.sideState;
+                    saveSideData();
+                    delete data.sideState;
+                    ['todo', 'prompts', 'poem', 'dice', 'ai'].forEach(renderFeatureList);
+                    currentAiChat = { id: null, messages: [] };
+                    if (typeof renderAiChat === 'function') renderAiChat();
+                }
                 state = data;
                 ensurePoemStyle();
                 ensurePageVisibility();
