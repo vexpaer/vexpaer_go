@@ -1,4 +1,25 @@
 // 内置默认数据，防止首次打开没有本地存储及服务器CORS导致无法加载link.json的情况
+window.DEFAULT_DATA = JSON.parse(JSON.stringify({
+    columns: [],
+    links: [],
+    colors: ["#0000ff", "#800080", "#ff0000", "#000000", "#ffffff"],
+    panelWidth: 800,
+    poemStyle: {
+        color: '#e8e1c8',
+        fontSize: 21,
+        fontCssUrl: 'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap',
+        fontFamily: "'Noto Serif SC', 'STSong', 'SimSun', serif"
+    },
+    pageVisibility: { todo: true, prompts: true, poem: true, dice: true, ai: true },
+    aiConfig: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' },
+    diceConfig: { count: 3, type: 'd6' },
+    featureStyle: {
+        todo: { fontSize: 15 },
+        prompts: { fontSize: 15 },
+        poem: { fontSize: 15 },
+        ai: { fontSize: 15 }
+    }
+}));
 
 let state = {
     columns: [],
@@ -8,12 +29,18 @@ let state = {
     poemStyle: {
         color: '#e8e1c8',
         fontSize: 21,
-        fontCssUrl: 'https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css',
-        fontFamily: 'LXGW WenKai'
+        fontCssUrl: 'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap',
+        fontFamily: "'Noto Serif SC', 'STSong', 'SimSun', serif"
     },
     pageVisibility: { todo: true, prompts: true, poem: true, dice: true, ai: true },
     aiConfig: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' },
-    diceConfig: { count: 3, type: 'd6' }
+    diceConfig: { count: 3, type: 'd6' },
+    featureStyle: {
+        todo: { fontSize: 15 },
+        prompts: { fontSize: 15 },
+        poem: { fontSize: 15 },
+        ai: { fontSize: 15 }
+    }
 };
 let sideState = { todo: [], prompts: [], poem: [], dice: [], ai: [] };
 let activeFeature = null;
@@ -44,6 +71,7 @@ async function init() {
             state = JSON.parse(JSON.stringify(window.DEFAULT_DATA));
         }
         applyPoemStyle();
+        applyFeatureStyles();
         renderLinks();
     } else {
         try {
@@ -63,6 +91,7 @@ async function init() {
             saveData(false);
         }
         applyPoemStyle();
+        applyFeatureStyles();
         renderLinks();
     }
 }
@@ -72,6 +101,7 @@ function initRightPanel() {
     updateTime();
     setInterval(updateTime, 1000);
     applyPoemStyle();
+    applyFeatureStyles();
     fetchPoem();
     renderFeatureList('todo');
     renderFeatureList('prompts');
@@ -98,8 +128,8 @@ function ensurePoemStyle() {
         state.poemStyle = {
             color: '#e8e1c8',
             fontSize: 21,
-            fontCssUrl: 'https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css',
-            fontFamily: 'LXGW WenKai'
+            fontCssUrl: 'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap',
+            fontFamily: "'Noto Serif SC', 'STSong', 'SimSun', serif"
         };
         return;
     }
@@ -110,10 +140,13 @@ function ensurePoemStyle() {
     } else {
         state.poemStyle.fontSize = Math.max(14, Math.min(48, fontSize));
     }
-    if (typeof state.poemStyle.fontCssUrl !== 'string') state.poemStyle.fontCssUrl = 'https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css';
-    if (typeof state.poemStyle.fontFamily !== 'string') state.poemStyle.fontFamily = 'LXGW WenKai';
+    if (typeof state.poemStyle.fontCssUrl !== 'string') state.poemStyle.fontCssUrl = 'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap';
+    if (typeof state.poemStyle.fontFamily !== 'string') state.poemStyle.fontFamily = "'Noto Serif SC', 'STSong', 'SimSun', serif";
     state.poemStyle.fontCssUrl = state.poemStyle.fontCssUrl.trim();
     state.poemStyle.fontFamily = state.poemStyle.fontFamily.trim();
+    if (!state.poemStyle.fontFamily) {
+        state.poemStyle.fontFamily = "'Noto Serif SC', 'STSong', 'SimSun', serif";
+    }
 }
 
 function applyPoemFontSource() {
@@ -146,6 +179,71 @@ function applyPoemStyle() {
     poemEl.style.color = state.poemStyle.color;
     poemEl.style.fontSize = state.poemStyle.fontSize + 'px';
     poemEl.style.fontFamily = state.poemStyle.fontFamily || 'inherit';
+}
+
+function ensureFeatureStyle() {
+    const defaults = {
+        todo: { fontSize: 15 },
+        prompts: { fontSize: 15 },
+        poem: { fontSize: 15 },
+        ai: { fontSize: 15 }
+    };
+    if (!state.featureStyle || typeof state.featureStyle !== 'object') {
+        state.featureStyle = JSON.parse(JSON.stringify(defaults));
+        return;
+    }
+    for (let key of Object.keys(defaults)) {
+        let obj = state.featureStyle[key];
+        if (!obj || typeof obj !== 'object') {
+            state.featureStyle[key] = { fontSize: defaults[key].fontSize };
+            continue;
+        }
+        let fs = Number(obj.fontSize);
+        if (Number.isNaN(fs)) {
+            state.featureStyle[key].fontSize = defaults[key].fontSize;
+        } else {
+            state.featureStyle[key].fontSize = Math.max(10, Math.min(36, fs));
+        }
+    }
+}
+
+function applyFeatureStyles() {
+    ensureFeatureStyle();
+    let oldStyle = document.getElementById('feature-font-style');
+    if (oldStyle) oldStyle.remove();
+
+    let css = '';
+    let types = ['todo', 'prompts', 'poem', 'ai'];
+    types.forEach(type => {
+        let fs = state.featureStyle[type]?.fontSize || 15;
+        let listId = type + '-list';
+        css += `#${listId} .item-text { font-size: ${fs}px; }\n`;
+        css += `#${listId} .item-btn { font-size: ${fs}px; }\n`;
+        if (type === 'ai') {
+            css += `.chat-message { font-size: ${fs}px; }\n`;
+            css += `#ai-list .item-text { font-size: ${fs}px; }\n`;
+            css += `#ai-list .item-btn { font-size: ${fs}px; }\n`;
+        }
+    });
+
+    let style = document.createElement('style');
+    style.id = 'feature-font-style';
+    style.textContent = css;
+    document.head.appendChild(style);
+}
+
+function updateFeatureStyle(type, value) {
+    ensureFeatureStyle();
+    let fs = Math.max(10, Math.min(36, Number(value) || 15));
+    if (!state.featureStyle[type]) state.featureStyle[type] = { fontSize: 15 };
+    state.featureStyle[type].fontSize = fs;
+    // sync range + number inputs in settings
+    let range = document.getElementById('fs-range-' + type);
+    let input = document.getElementById('fs-input-' + type);
+    if (range) range.value = fs;
+    if (input) input.value = fs;
+    applyFeatureStyles();
+    saveData(false);
 }
 
 function initRightPanelResize() {
@@ -641,8 +739,26 @@ function renderEditor() {
         <label style="display:flex;align-items:center;gap:8px;">字体名称
             <input type="text" id="poem-font-family" placeholder="LXGW WenKai" value="${escapeHtml(state.poemStyle.fontFamily)}" onchange="updatePoemStyle('fontFamily', this.value)" style="width:180px;">
         </label>
+        <button onclick="refreshPoemFont()" style="background:#555;color:#fff;border:1px solid #888;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:13px;">🔄 刷新字体</button>
+        <span id="poem-font-status" style="font-size:12px;color:#999;display:none;"></span>
     </div>`;
     document.getElementById('poem-style-editor').innerHTML = poemStyleHtml;
+
+    // 渲染内容字体大小编辑器
+    ensureFeatureStyle();
+    let fsLabels = { todo: '待办', prompts: '提示词', poem: '诗词', ai: 'AI' };
+    let featureStyleHtml = `<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:#2a2a2a;padding:12px 14px;border-radius:10px;">`;
+    for (let [type, label] of Object.entries(fsLabels)) {
+        let fs = state.featureStyle[type]?.fontSize || 15;
+        featureStyleHtml += `<label style="display:flex;align-items:center;gap:8px;min-width:140px;">
+            <span style="min-width:40px;">${label}</span>
+            <input type="range" id="fs-range-${type}" min="10" max="36" step="1" value="${fs}" oninput="updateFeatureStyle('${type}', this.value)" style="width:100px;">
+            <input type="number" id="fs-input-${type}" min="10" max="36" step="1" value="${fs}" onchange="updateFeatureStyle('${type}', this.value)" style="width:64px;">
+            <span>px</span>
+        </label>`;
+    }
+    featureStyleHtml += `</div>`;
+    document.getElementById('feature-style-editor').innerHTML = featureStyleHtml;
 
     // 渲染栏目编辑器
     let colHtml = `<table><tr><th width="20%">栏目ID (不可改)</th><th width="30%">栏目名称</th><th width="30%">统一更改标签颜色</th><th width="20%">操作</th></tr>`;
@@ -761,6 +877,60 @@ function updatePoemStyle(field, value) {
         state.poemStyle.fontFamily = String(value || '').trim();
     }
     saveData();
+}
+
+function refreshPoemFont() {
+    // 先从输入框读取最新值，确保 onchange 未触发时也能拿到
+    let urlInput = document.getElementById('poem-font-css-url');
+    let familyInput = document.getElementById('poem-font-family');
+    if (urlInput) {
+        state.poemStyle.fontCssUrl = urlInput.value.trim();
+    }
+    if (familyInput) {
+        state.poemStyle.fontFamily = familyInput.value.trim();
+    }
+    saveData(false); // 保存但不重新渲染编辑器，避免输入框失焦
+
+    ensurePoemStyle();
+    // 移除旧的字体链接，强制重新加载
+    let oldLink = document.getElementById('poem-font-link');
+    if (oldLink) oldLink.remove();
+    // 重新应用字体源
+    applyPoemFontSource();
+    // 重新应用样式到诗词元素
+    applyPoemStyle();
+    // 显示状态
+    let statusEl = document.getElementById('poem-font-status');
+    if (!statusEl) return;
+    statusEl.style.display = 'inline';
+    statusEl.style.color = '#8bc34a';
+    statusEl.textContent = '✓ 字体已刷新';
+    // 尝试检测字体是否加载成功
+    try {
+        if (document.fonts && typeof document.fonts.ready === 'object') {
+            let fontFamily = state.poemStyle.fontFamily.split(',')[0].replace(/['"]/g, '').trim();
+            document.fonts.ready.then(() => {
+                try {
+                    if (document.fonts.check('1em "' + fontFamily + '"')) {
+                        statusEl.textContent = '✓ 字体已加载';
+                        statusEl.style.color = '#8bc34a';
+                    } else {
+                        statusEl.textContent = '⚠ 字体可能未加载，检查链接是否可访问';
+                        statusEl.style.color = '#ffa726';
+                    }
+                } catch(e) {
+                    statusEl.textContent = '✓ 已刷新（字体检测不可用）';
+                }
+            }).catch(() => {
+                statusEl.textContent = '✓ 已刷新';
+            });
+        }
+    } catch(e) {}
+    // 3秒后自动隐藏
+    clearTimeout(window._fontStatusTimer);
+    window._fontStatusTimer = setTimeout(() => {
+        statusEl.style.display = 'none';
+    }, 3000);
 }
 
 // 颜色修改函数
@@ -1121,66 +1291,93 @@ renderFeatureList = function(type) {
     }
 }
 
-// --- 骰子 3D 场景控制 ---
-let diceBoxInstance = null;
-let isDiceLoading = false;
+// --- 骰子控制（纯前端实现，零外部依赖，兼容 GitHub Pages / file://）---
+const DICE_FACES_UNI = ['', '\u2680', '\u2681', '\u2682', '\u2683', '\u2684', '\u2685'];
 
-async function handleDiceScene(isActive) {
+function buildDiceUI() {
+    const container = document.getElementById('dice-container');
+    if (!container) return;
+    container.innerHTML = '';
+    container.style.cssText = 'width:100%;height:100%;background:#1a1a2e;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+
+    const count = state.diceConfig?.count || 1;
+    const type = state.diceConfig?.type || 'd6';
+    const faces = parseInt(type.slice(1)) || 6;
+
+    const wrap = document.createElement('div');
+    wrap.id = 'dice-wrapper';
+    wrap.style.cssText = 'display:flex;gap:14px;flex-wrap:wrap;justify-content:center;align-items:center;';
+
+    for (let i = 0; i < count; i++) {
+        const die = document.createElement('div');
+        die.className = 'dice-die';
+        die.style.cssText = `width:64px;height:64px;display:flex;align-items:center;justify-content:center;
+background:linear-gradient(145deg,#3a3a5c,#2a2a44);border-radius:12px;
+border:2px solid #5a5a8c;color:#eee;font-size:${faces === 6 ? 44 : 26}px;
+font-weight:bold;box-shadow:0 4px 12px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.1);
+transition:transform 0.08s;user-select:none;text-shadow:0 2px 4px rgba(0,0,0,0.5);`;
+        die.textContent = faces === 6 ? DICE_FACES_UNI[1] : '?';
+        wrap.appendChild(die);
+    }
+    container.appendChild(wrap);
+}
+
+function handleDiceScene(isActive) {
     const container = document.getElementById('dice-container');
     const resultDiv = document.getElementById('dice-result');
     if (!container) return;
 
     if (!isActive) {
-        if (diceBoxInstance) {
-            try { diceBoxInstance.clear(); } catch (e) {}
-        }
         if (resultDiv) resultDiv.style.display = 'none';
         return;
     }
 
     if (resultDiv) resultDiv.style.display = 'none';
-
-    if (!diceBoxInstance && !isDiceLoading) {
-        isDiceLoading = true;
-        try {
-            const { default: DiceBox } = await import('https://unpkg.com/@3d-dice/dice-box@1.1.4/dist/dice-box.es.min.js');
-            diceBoxInstance = new DiceBox({
-                container: "#dice-container",
-                assetPath: new URL('public/assets/', document.baseURI).href, // 用绝对 URL，兼容 GitHub Pages 子路径部署
-                theme: 'default',
-                scale: 6,
-                gravity: 2,
-                friction: 0.8
-            });
-            diceBoxInstance.onRollComplete = (results) => {
-                if (!resultDiv) return;
-                if (results && results.length > 0) {
-                    const total = results.reduce((sum, d) => sum + (d.value || 0), 0);
-                    resultDiv.textContent = '总计: ' + total;
-                    resultDiv.style.display = 'block';
-                }
-            };
-            await diceBoxInstance.init();
-        } catch (err) {
-            console.error("DiceBox load error:", err);
-            container.innerHTML = '<p style="color:#ff8a8a; text-align:center; padding: 20px; line-height:1.6;">无法加载 3D 骰子。<br>请用本地服务器打开（如 <code>npx http-server</code> 或 <code>python -m http.server</code>），<br>并确认 <code>public/assets/</code> 目录存在。</p>';
-            isDiceLoading = false;
-            return;
-        }
-        isDiceLoading = false;
-    }
-
-    if (diceBoxInstance) rollDice();
+    buildDiceUI();
+    rollDice();
 }
 
 function rollDice() {
-    if (!diceBoxInstance || isDiceLoading) return;
+    const container = document.getElementById('dice-container');
     const resultDiv = document.getElementById('dice-result');
+    if (!container) return;
+
+    let wrap = document.getElementById('dice-wrapper');
+    if (!wrap) { buildDiceUI(); wrap = document.getElementById('dice-wrapper'); }
+    if (!wrap) return;
+
     if (resultDiv) resultDiv.style.display = 'none';
-    try { diceBoxInstance.clear(); } catch (e) {}
+
     const count = state.diceConfig?.count || 1;
     const type = state.diceConfig?.type || 'd6';
-    diceBoxInstance.roll(`${count}${type}`);
+    const faces = parseInt(type.slice(1)) || 6;
+    const dice = wrap.querySelectorAll('.dice-die');
+    const final = [];
+
+    let tick = 0;
+    const timer = setInterval(() => {
+        for (let i = 0; i < dice.length && i < count; i++) {
+            const v = Math.floor(Math.random() * faces) + 1;
+            dice[i].textContent = faces === 6 ? DICE_FACES_UNI[v] : v;
+            dice[i].style.transform = `rotate(${Math.random() * 360}deg) scale(${1 + Math.random() * 0.2})`;
+        }
+        tick++;
+        if (tick >= 12) {
+            clearInterval(timer);
+            for (let i = 0; i < dice.length && i < count; i++) {
+                const v = Math.floor(Math.random() * faces) + 1;
+                final.push(v);
+                dice[i].textContent = faces === 6 ? DICE_FACES_UNI[v] : v;
+                dice[i].style.transform = 'rotate(0deg) scale(1)';
+                dice[i].style.borderColor = '#8aff8a';
+                dice[i].style.boxShadow = '0 0 20px rgba(100,255,100,0.4), 0 4px 12px rgba(0,0,0,0.5)';
+            }
+            if (resultDiv && final.length) {
+                resultDiv.textContent = '总计: ' + final.reduce((a, b) => a + b, 0);
+                resultDiv.style.display = 'block';
+            }
+        }
+    }, 75);
 }
 
 // 页面启动
