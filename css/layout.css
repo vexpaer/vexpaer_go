@@ -1,0 +1,25 @@
+/* ===== Main Layout ===== */
+.main-layout {
+    display: flex;
+    align-items: stretch;
+}
+
+.links-area {
+    flex: 1;
+    min-width: 0;
+}
+
+.wrap {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+}
+
+.wrap_col {
+    height: 900px;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    align-content: flex-start;
+}

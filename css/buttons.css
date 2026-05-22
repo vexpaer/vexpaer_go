@@ -1,0 +1,55 @@
+/* ===== Custom Button (Tags) ===== */
+.button-custom {
+    display: inline-block;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 2em;
+    padding: 0.75em 1em;
+    color: var(--btn-color);
+    border: 0.15em solid var(--btn-color);
+    border-radius: 2em;
+    transition: 3s;
+    cursor: pointer;
+    user-select: none;
+    text-align: center;
+}
+
+.button-custom:before,
+.button-custom:after {
+    content: "";
+    position: absolute;
+    top: -1.5em;
+    z-index: -1;
+    width: 200%;
+    aspect-ratio: 1;
+    border: none;
+    border-radius: 40%;
+    background-color: var(--btn-bg);
+    transition: 3s;
+}
+
+.button-custom:before {
+    left: -80%;
+    transform: translate3d(0, 5em, 0) rotate(-340deg);
+}
+
+.button-custom:after {
+    right: -80%;
+    transform: translate3d(0, 5em, 0) rotate(390deg);
+}
+
+.button-custom:hover,
+.button-custom:focus {
+    color: white;
+}
+
+.button-custom:hover:before,
+.button-custom:hover:after,
+.button-custom:focus:before,
+.button-custom:focus:after {
+    transform: none;
+    background-color: var(--btn-hover);
+}

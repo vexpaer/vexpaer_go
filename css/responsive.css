@@ -1,0 +1,14 @@
+/* ===== Responsive ===== */
+@media (max-width: 1100px) {
+    .main-layout {
+        flex-direction: column;
+    }
+    .right-panel {
+        width: 100%;
+        min-width: 0;
+        height: 75vh;
+    }
+    .right-resize-handle {
+        display: none;
+    }
+}

@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "@3d-dice/dice-box": "^1.1.4",
-    "playwright": "^1.60.0"
-  }
-}
