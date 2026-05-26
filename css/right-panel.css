@@ -178,6 +178,7 @@
     word-break: break-word;
     font-size: 0.95em;
     line-height: 1.4;
+    position: relative;
 }
 
 .chat-message.system {
@@ -199,6 +200,30 @@
     color: #fff;
     align-self: flex-start;
     border-bottom-left-radius: 2px;
+}
+
+.chat-message.ai .copy-btn {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    opacity: 0.25;
+    font-size: 0.8em;
+    padding: 2px 4px;
+    border-radius: 4px;
+    line-height: 1;
+    transition: opacity 0.2s, background 0.2s;
+}
+
+.chat-message.ai:hover .copy-btn {
+    opacity: 0.7;
+}
+
+.chat-message.ai .copy-btn:hover {
+    opacity: 1;
+    background: rgba(255,255,255,0.1);
 }
 
 /* Item Lists */

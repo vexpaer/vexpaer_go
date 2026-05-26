@@ -73,8 +73,8 @@ async function sendAiMessage() {
         return;
     }
 
-    let loadingIndex = currentAiChat.messages.length;
-    currentAiChat.messages.push({ role: 'ai', content: '...', loading: true });
+    let msgIndex = currentAiChat.messages.length;
+    currentAiChat.messages.push({ role: 'ai', content: '', loading: true });
     renderAiChat();
 
     let baseUrl = state.aiConfig.baseUrl || 'https://api.openai.com/v1';
@@ -99,23 +99,75 @@ async function sendAiMessage() {
             },
             body: JSON.stringify({
                 model: state.aiConfig.model || 'gpt-3.5-turbo',
-                messages: apiMessages
+                messages: apiMessages,
+                stream: true
             })
         });
 
-        let result = await response.json();
-        currentAiChat.messages[loadingIndex].loading = false;
-
-        if (response.ok && result.choices && result.choices.length > 0) {
-            currentAiChat.messages[loadingIndex].content = result.choices[0].message.content;
-        } else {
-            currentAiChat.messages[loadingIndex].content = `错误: ${result.error?.message || '未知错误'}`;
+        if (!response.ok) {
+            let errData = {};
+            try { errData = await response.json(); } catch (_) {}
+            currentAiChat.messages[msgIndex].loading = false;
+            currentAiChat.messages[msgIndex].content = `错误: ${errData.error?.message || `HTTP ${response.status}`}`;
+            renderAiChat();
+            return;
         }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+
+            let lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (let line of lines) {
+                let trimmed = line.trim();
+                if (!trimmed || !trimmed.startsWith('data: ')) continue;
+                let data = trimmed.slice(6);
+                if (data === '[DONE]') continue;
+                try {
+                    let parsed = JSON.parse(data);
+                    let delta = parsed.choices?.[0]?.delta?.content || '';
+                    if (delta) {
+                        currentAiChat.messages[msgIndex].content += delta;
+                        renderAiChat();
+                    }
+                } catch (_) {}
+            }
+        }
+
+        // process remaining buffer
+        if (buffer.trim()) {
+            let line = buffer.trim();
+            if (line.startsWith('data: ')) {
+                let data = line.slice(6);
+                if (data !== '[DONE]') {
+                    try {
+                        let parsed = JSON.parse(data);
+                        let delta = parsed.choices?.[0]?.delta?.content || '';
+                        if (delta) currentAiChat.messages[msgIndex].content += delta;
+                    } catch (_) {}
+                }
+            }
+        }
+
+        currentAiChat.messages[msgIndex].loading = false;
+        if (!currentAiChat.messages[msgIndex].content) {
+            currentAiChat.messages[msgIndex].content = '(空回复)';
+        }
+        renderAiChat();
+
     } catch (e) {
-        currentAiChat.messages[loadingIndex].loading = false;
-        currentAiChat.messages[loadingIndex].content = `请求失败: ${e.message}`;
+        currentAiChat.messages[msgIndex].loading = false;
+        currentAiChat.messages[msgIndex].content = `请求失败: ${e.message}`;
+        renderAiChat();
     }
-    renderAiChat();
 }
 
 function renderAiChat() {
@@ -133,13 +185,43 @@ function renderAiChat() {
     }
 
     let html = '';
-    currentAiChat.messages.forEach(m => {
+    currentAiChat.messages.forEach((m, idx) => {
         let cls = m.role === 'user' ? 'user' : (m.role === 'system' ? 'system' : 'ai');
-        let content = escapeHtml(m.content).replace(/\n/g, '<br>');
-        html += `<div class="chat-message ${cls}">${content}</div>`;
+        let display = m.content;
+        if (m.loading) {
+            display = display || '...';
+        }
+        let content = escapeHtml(display).replace(/\n/g, '<br>');
+        html += `<div class="chat-message ${cls}">${content}`;
+        if (m.role === 'ai' && !m.loading && m.content) {
+            html += `<button class="copy-btn" onclick="copyAiMessage(${idx})" title="复制回答">📋</button>`;
+        }
+        html += `</div>`;
     });
     chatContainer.innerHTML = html;
     chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+function copyAiMessage(index) {
+    let msg = currentAiChat.messages[index];
+    if (!msg || !msg.content) return;
+    let text = msg.content;
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+    } else {
+        fallbackCopy(text);
+    }
+}
+
+function fallbackCopy(text) {
+    let ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
 }
 
 function loadSavedAiChat(id) {
