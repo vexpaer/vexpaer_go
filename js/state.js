@@ -26,7 +26,7 @@ window.DEFAULT_DATA = JSON.parse(JSON.stringify({
         ],
         activePresetLabel: 'OpenAI'
     },
-    diceConfig: { count: 3, type: 'd6' },
+    diceConfig: { formula: '3D6' },
     featureStyle: {
         todo: { fontSize: 15 },
         prompts: { fontSize: 15 },
@@ -61,7 +61,7 @@ let state = {
         ],
         activePresetLabel: 'OpenAI'
     },
-    diceConfig: { count: 3, type: 'd6' },
+    diceConfig: { formula: '3D6' },
     featureStyle: {
         todo: { fontSize: 15 },
         prompts: { fontSize: 15 },

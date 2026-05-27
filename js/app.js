@@ -30,7 +30,7 @@ async function init() {
             if (!state.colors) state.colors = ["#0000ff", "#800080", "#ff0000", "#000000", "#ffffff"];
             if (!state.aiConfig) state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' };
             migrateAiConfig();
-            if (!state.diceConfig) state.diceConfig = { count: 1, type: 'd6' };
+            if (!state.diceConfig) state.diceConfig = { formula: '3D6' };
             ensurePageVisibility();
             ensureTheme();
             if (typeof state.panelWidth !== 'number' || Number.isNaN(state.panelWidth)) state.panelWidth = 800;

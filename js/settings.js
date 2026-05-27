@@ -137,21 +137,25 @@ function renderEditor() {
     document.getElementById('ai-config-editor').innerHTML = aiConfigHtml;
 
     // 骰子配置编辑器
-    if (!state.diceConfig) state.diceConfig = { count: 1, type: 'd6' };
+    if (!state.diceConfig) state.diceConfig = { formula: '3D6' };
+    // 兼容旧格式
+    if (state.diceConfig.count && state.diceConfig.type && !state.diceConfig.formula) {
+        state.diceConfig.formula = state.diceConfig.count + state.diceConfig.type.toUpperCase();
+        delete state.diceConfig.count;
+        delete state.diceConfig.type;
+    }
+    if (!state.diceConfig.formula) state.diceConfig.formula = '3D6';
     let diceConfigHtml = `<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:#2a2a2a;padding:12px 14px;border-radius:10px;">
-        <label style="display:flex;align-items:center;gap:8px;">骰子数量
-            <input type="number" id="dice-count" min="1" max="20" placeholder="1" value="${state.diceConfig.count}" onchange="updateDiceConfig('count', this.value)" style="width:80px;">
+        <label style="display:flex;align-items:center;gap:8px;flex:1 1 100%;">
+            骰子公式
+            <input type="text" id="dice-formula" placeholder="3D6+2D8" value="${escapeHtml(state.diceConfig.formula)}" onchange="updateDiceFormula(this.value)" style="flex:1;padding:6px;border-radius:4px;border:1px solid #555;background:#333;color:white;font-family:monospace;font-size:14px;">
         </label>
-        <label style="display:flex;align-items:center;gap:8px;">骰子类型
-            <select id="dice-type" onchange="updateDiceConfig('type', this.value)" style="padding:4px; border-radius:4px; border:1px solid #555; background:#333; color:white;">
-                <option value="d4" ${state.diceConfig.type === 'd4' ? 'selected' : ''}>D4 (四面)</option>
-                <option value="d6" ${state.diceConfig.type === 'd6' ? 'selected' : ''}>D6 (六面)</option>
-                <option value="d8" ${state.diceConfig.type === 'd8' ? 'selected' : ''}>D8 (八面)</option>
-                <option value="d10" ${state.diceConfig.type === 'd10' ? 'selected' : ''}>D10 (十面)</option>
-                <option value="d12" ${state.diceConfig.type === 'd12' ? 'selected' : ''}>D12 (十二面)</option>
-                <option value="d20" ${state.diceConfig.type === 'd20' ? 'selected' : ''}>D20 (二十面)</option>
-            </select>
-        </label>
+        <div style="flex:1 1 100%;font-size:0.85em;color:#aaa;">
+            格式: <code style="color:#7ec1f1;">数量D面数</code>，多个用 <code style="color:#7ec1f1;">+</code> 连接。
+            例: <code style="color:#7ec1f1;">3D6</code> = 3个六面骰，
+            <code style="color:#7ec1f1;">2D20+1D8</code> = 2个二十面 + 1个八面。
+            支持 D4/D6/D8/D10/D12/D20。
+        </div>
     </div>`;
     document.getElementById('dice-config-editor').innerHTML = diceConfigHtml;
 
