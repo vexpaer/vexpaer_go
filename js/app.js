@@ -32,10 +32,12 @@ async function init() {
             migrateAiConfig();
             if (!state.diceConfig) state.diceConfig = { count: 1, type: 'd6' };
             ensurePageVisibility();
+            ensureTheme();
             if (typeof state.panelWidth !== 'number' || Number.isNaN(state.panelWidth)) state.panelWidth = 800;
         } catch (e) {
             state = JSON.parse(JSON.stringify(window.DEFAULT_DATA));
         }
+        applyTheme();
         applyPoemStyle();
         applyFeatureStyles();
         renderLinks();
@@ -47,6 +49,7 @@ async function init() {
                 if (!state.colors) state.colors = ["#0000ff", "#800080", "#ff0000", "#000000", "#ffffff"];
                 migrateAiConfig();
                 ensurePageVisibility();
+                ensureTheme();
                 if (typeof state.panelWidth !== 'number' || Number.isNaN(state.panelWidth)) state.panelWidth = 800;
                 saveData(false);
             } else {
@@ -56,6 +59,7 @@ async function init() {
             state = JSON.parse(JSON.stringify(window.DEFAULT_DATA));
             saveData(false);
         }
+        applyTheme();
         applyPoemStyle();
         applyFeatureStyles();
         renderLinks();
@@ -112,9 +116,11 @@ function importJson(event) {
                 state = data;
                 ensurePoemStyle();
                 ensurePageVisibility();
+                ensureTheme();
                 if (!state.aiConfig) state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' };
                 migrateAiConfig();
                 saveData();
+                applyTheme();
                 alert('JSON 导入加载成功！');
             } else {
                 alert('JSON 格式不匹配，缺少 columns 或 links 字段，导入失败。');

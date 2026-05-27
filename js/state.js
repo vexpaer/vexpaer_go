@@ -6,6 +6,7 @@ window.DEFAULT_DATA = JSON.parse(JSON.stringify({
     links: [],
     colors: ["#0000ff", "#800080", "#ff0000", "#000000", "#ffffff"],
     panelWidth: 800,
+    theme: 'default',
     poemStyle: {
         color: '#e8e1c8',
         fontSize: 21,
@@ -40,6 +41,7 @@ let state = {
     links: [],
     colors: ["#0000ff", "#800080", "#ff0000", "#000000", "#ffffff"],
     panelWidth: 800,
+    theme: 'default',
     poemStyle: {
         color: '#e8e1c8',
         fontSize: 21,
@@ -152,6 +154,12 @@ function ensureFeatureStyle() {
         } else {
             state.featureStyle[key].fontSize = Math.max(10, Math.min(36, fs));
         }
+    }
+}
+
+function ensureTheme() {
+    if (!state.theme || !['default', 'ios26'].includes(state.theme)) {
+        state.theme = 'default';
     }
 }
 

@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="css/right-panel.css">
     <link rel="stylesheet" href="css/settings.css">
     <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/theme-ios26.css">
 </head>
 <body>
 
@@ -71,11 +72,11 @@
                     <ul id="poem-list" class="item-list"></ul>
                 </div>
 
-                <div id="feature-dice" class="feature-content" style="position: relative; overflow: hidden; height: 300px; padding: 0;">
+                <div id="feature-dice" class="feature-content" style="position: relative; overflow: hidden; height: 350px; padding: 0;">
                     <h3 class="feature-title" style="position: absolute; top: 10px; left: 10px; z-index: 10; text-shadow: 1px 1px 2px #000;">骰子</h3>
-                    <div id="dice-container" style="width: 100%; height: 100%; background: #111; border-radius: 8px;"></div>
-                    <div id="dice-result" style="position: absolute; top: 10px; right: 10px; z-index: 10; font-size: 1.2em; font-weight: bold; color: #fff; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 4px; display: none;"></div>
-                    <button onclick="rollDice()" style="position: absolute; bottom: 10px; right: 10px; z-index: 10; background: rgba(0,0,0,0.6); color:#fff; border:1px solid #666; border-radius:6px; padding:6px 14px; cursor:pointer;">重掷</button>
+                    <div id="dice-container" style="width: 100%; height: 100%; background: #1a1a2e; border-radius: 8px;"></div>
+                    <div id="dice-result" style="position: absolute; top: 10px; right: 10px; z-index: 10; font-size: 1.2em; font-weight: bold; color: #fff; background: rgba(0,0,0,0.7); padding: 6px 12px; border-radius: 6px; display: none;"></div>
+                    <button onclick="rollDice3D()" style="position: absolute; bottom: 10px; right: 10px; z-index: 10; background: rgba(0,0,0,0.6); color:#fff; border:1px solid #666; border-radius:6px; padding:8px 16px; cursor:pointer; font-size: 14px;">重掷</button>
                 </div>
 
                 <div id="feature-ai" class="feature-content">
@@ -107,6 +108,9 @@
             <span class="close-btn" onclick="closeSettings()">&times;</span>
 
             <h2 style="margin-top:0;">系统设置与标签编辑</h2>
+
+            <h2 class="section-title">🎨 主题风格</h2>
+            <div id="theme-editor"></div>
 
             <div class="controls">
                 <button class="btn-success" onclick="exportJson()">⬇️ 导出 JSON</button>

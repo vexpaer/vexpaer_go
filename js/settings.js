@@ -2,6 +2,7 @@
 
 function openSettings() {
     ensurePoemStyle();
+    ensureTheme();
     sortLinksByColumn();
     document.getElementById('settings-modal').style.display = 'flex';
     renderEditor();
@@ -20,6 +21,27 @@ window.toggleTagGroup = function(colId) {
 
 function renderEditor() {
     ensurePoemStyle();
+    ensureTheme();
+
+    // 主题编辑器
+    let themeHtml = `<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:#2a2a2a;padding:12px 14px;border-radius:10px;">`;
+    let themes = [
+        { id: 'default', name: '默认风格', desc: '经典暗色主题' },
+        { id: 'ios26', name: 'iOS 26 毛玻璃', desc: '现代毛玻璃效果' }
+    ];
+    themes.forEach(t => {
+        let isActive = state.theme === t.id;
+        themeHtml += `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:${isActive ? 'rgba(100,149,237,0.3)' : '#333'};border-radius:10px;cursor:pointer;border:2px solid ${isActive ? 'rgba(100,149,237,0.6)' : 'transparent'};transition:all 0.3s;" onclick="switchTheme('${t.id}')">
+            <div style="width:40px;height:40px;border-radius:8px;background:${t.id === 'default' ? '#121212' : 'linear-gradient(135deg, #1a1a2e, #16213e)'};border:1px solid #555;"></div>
+            <div>
+                <div style="font-weight:bold;color:white;">${t.name}</div>
+                <div style="font-size:0.85em;color:#aaa;">${t.desc}</div>
+            </div>
+            ${isActive ? '<div style="margin-left:auto;color:#7ec1f1;font-weight:bold;">✓ 当前</div>' : ''}
+        </div>`;
+    });
+    themeHtml += `</div>`;
+    document.getElementById('theme-editor').innerHTML = themeHtml;
 
     // 颜色编辑器
     let colorHtml = `<div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">`;
@@ -247,4 +269,22 @@ function renderEditor() {
     });
     linkHtml += `</table><button class="btn-success" onclick="addLink()" style="margin-top:10px;">+ 添加新标签</button>`;
     document.getElementById('link-editor').innerHTML = linkHtml;
+}
+
+// ===== 主题切换 =====
+function switchTheme(themeId) {
+    if (!['default', 'ios26'].includes(themeId)) return;
+    state.theme = themeId;
+    applyTheme();
+    saveData(false);
+    renderEditor();
+}
+
+function applyTheme() {
+    const body = document.body;
+    body.classList.remove('ios26-theme');
+    
+    if (state.theme === 'ios26') {
+        body.classList.add('ios26-theme');
+    }
 }
