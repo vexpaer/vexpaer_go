@@ -13,7 +13,18 @@ window.DEFAULT_DATA = JSON.parse(JSON.stringify({
         fontFamily: "'Noto Serif SC', 'STSong', 'SimSun', serif"
     },
     pageVisibility: { todo: true, prompts: true, poem: true, dice: true, ai: true },
-    aiConfig: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' },
+    aiConfig: {
+        baseUrl: 'https://api.openai.com/v1',
+        model: 'gpt-3.5-turbo',
+        apiKey: '',
+        systemPrompt: '',
+        modelPresets: [
+            { label: 'OpenAI', model: 'gpt-4o', baseUrl: 'https://api.openai.com/v1', apiKey: '' },
+            { label: 'DeepSeek', model: 'deepseek-chat', baseUrl: 'https://api.deepseek.com', apiKey: '' },
+            { label: 'GPT-3.5 Turbo', model: 'gpt-3.5-turbo', baseUrl: 'https://api.openai.com/v1', apiKey: '' }
+        ],
+        activePresetLabel: 'OpenAI'
+    },
     diceConfig: { count: 3, type: 'd6' },
     featureStyle: {
         todo: { fontSize: 15 },
@@ -36,7 +47,18 @@ let state = {
         fontFamily: "'Noto Serif SC', 'STSong', 'SimSun', serif"
     },
     pageVisibility: { todo: true, prompts: true, poem: true, dice: true, ai: true },
-    aiConfig: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' },
+    aiConfig: {
+        baseUrl: 'https://api.openai.com/v1',
+        model: 'gpt-3.5-turbo',
+        apiKey: '',
+        systemPrompt: '',
+        modelPresets: [
+            { label: 'OpenAI', model: 'gpt-4o', baseUrl: 'https://api.openai.com/v1', apiKey: '' },
+            { label: 'DeepSeek', model: 'deepseek-chat', baseUrl: 'https://api.deepseek.com', apiKey: '' },
+            { label: 'GPT-3.5 Turbo', model: 'gpt-3.5-turbo', baseUrl: 'https://api.openai.com/v1', apiKey: '' }
+        ],
+        activePresetLabel: 'OpenAI'
+    },
     diceConfig: { count: 3, type: 'd6' },
     featureStyle: {
         todo: { fontSize: 15 },

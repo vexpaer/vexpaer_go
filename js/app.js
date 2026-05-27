@@ -1,5 +1,27 @@
 // ===== 初始化 & 导入导出 =====
 
+function migrateAiConfig() {
+    if (!state.aiConfig) {
+        state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '', systemPrompt: '', modelPresets: [], activePresetLabel: '' };
+    }
+    if (!state.aiConfig.modelPresets) {
+        let existingModel = state.aiConfig.model || 'gpt-3.5-turbo';
+        let labelMap = { 'gpt-3.5-turbo': 'GPT-3.5 Turbo', 'gpt-4': 'GPT-4', 'gpt-4o': 'GPT-4o', 'deepseek-chat': 'DeepSeek Chat', 'deepseek-coder': 'DeepSeek Coder' };
+        let existingLabel = labelMap[existingModel] || existingModel;
+        state.aiConfig.modelPresets = [
+            { label: existingLabel, model: existingModel, baseUrl: state.aiConfig.baseUrl || 'https://api.openai.com/v1', apiKey: state.aiConfig.apiKey || '' },
+            { label: 'GPT-4o', model: 'gpt-4o', baseUrl: 'https://api.openai.com/v1', apiKey: '' },
+            { label: 'DeepSeek Chat', model: 'deepseek-chat', baseUrl: 'https://api.deepseek.com', apiKey: '' }
+        ];
+        state.aiConfig.activePresetLabel = existingLabel;
+    }
+    // 兼容旧预设：缺少 baseUrl/apiKey 则补上
+    state.aiConfig.modelPresets.forEach(p => {
+        if (!p.baseUrl) p.baseUrl = state.aiConfig.baseUrl || 'https://api.openai.com/v1';
+        if (!p.apiKey) p.apiKey = state.aiConfig.apiKey || '';
+    });
+}
+
 async function init() {
     let saved = localStorage.getItem('e-desktop-data');
     if (saved) {
@@ -7,6 +29,7 @@ async function init() {
             state = JSON.parse(saved);
             if (!state.colors) state.colors = ["#0000ff", "#800080", "#ff0000", "#000000", "#ffffff"];
             if (!state.aiConfig) state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' };
+            migrateAiConfig();
             if (!state.diceConfig) state.diceConfig = { count: 1, type: 'd6' };
             ensurePageVisibility();
             if (typeof state.panelWidth !== 'number' || Number.isNaN(state.panelWidth)) state.panelWidth = 800;
@@ -22,6 +45,7 @@ async function init() {
             if (res.ok) {
                 state = await res.json();
                 if (!state.colors) state.colors = ["#0000ff", "#800080", "#ff0000", "#000000", "#ffffff"];
+                migrateAiConfig();
                 ensurePageVisibility();
                 if (typeof state.panelWidth !== 'number' || Number.isNaN(state.panelWidth)) state.panelWidth = 800;
                 saveData(false);
@@ -89,6 +113,7 @@ function importJson(event) {
                 ensurePoemStyle();
                 ensurePageVisibility();
                 if (!state.aiConfig) state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' };
+                migrateAiConfig();
                 saveData();
                 alert('JSON 导入加载成功！');
             } else {

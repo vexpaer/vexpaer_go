@@ -98,7 +98,7 @@ async function sendAiMessage() {
                 'Authorization': `Bearer ${state.aiConfig.apiKey}`
             },
             body: JSON.stringify({
-                model: state.aiConfig.model || 'gpt-3.5-turbo',
+                model: getActiveModel(),
                 messages: apiMessages,
                 stream: true
             })
@@ -239,6 +239,80 @@ function updateAiConfig(field, value) {
     if (!state.aiConfig) state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' };
     state.aiConfig[field] = value.trim();
     saveData(false);
+}
+
+function getActiveModel() {
+    let config = state.aiConfig;
+    if (!config) return 'gpt-3.5-turbo';
+    if (config.modelPresets && config.activePresetLabel) {
+        let preset = config.modelPresets.find(p => p.label === config.activePresetLabel);
+        if (preset) return preset.model;
+    }
+    return config.model || 'gpt-3.5-turbo';
+}
+
+function selectAiPreset(index) {
+    if (!state.aiConfig.modelPresets || !state.aiConfig.modelPresets[index]) return;
+    let preset = state.aiConfig.modelPresets[index];
+    state.aiConfig.activePresetLabel = preset.label;
+    state.aiConfig.model = preset.model;
+    if (preset.baseUrl) state.aiConfig.baseUrl = preset.baseUrl;
+    if (preset.apiKey !== undefined) state.aiConfig.apiKey = preset.apiKey;
+    saveData(false);
+    if (document.getElementById('settings-modal').style.display === 'flex') {
+        renderEditor();
+    }
+}
+
+function addAiPreset() {
+    let labelInput = document.getElementById('new-preset-label');
+    let modelInput = document.getElementById('new-preset-model');
+    let urlInput = document.getElementById('new-preset-url');
+    let keyInput = document.getElementById('new-preset-key');
+    let label = labelInput.value.trim();
+    let model = modelInput.value.trim();
+    let baseUrl = urlInput.value.trim();
+    let apiKey = keyInput.value.trim();
+    if (!label || !model || !baseUrl) {
+        alert('请至少填写配置名称、模型 ID 和 Base URL');
+        return;
+    }
+    if (!state.aiConfig.modelPresets) state.aiConfig.modelPresets = [];
+    if (state.aiConfig.modelPresets.some(p => p.label === label)) {
+        alert('配置名称已存在');
+        return;
+    }
+    let preset = { label, model, baseUrl, apiKey };
+    state.aiConfig.modelPresets.push(preset);
+    state.aiConfig.activePresetLabel = label;
+    state.aiConfig.model = model;
+    state.aiConfig.baseUrl = baseUrl;
+    state.aiConfig.apiKey = apiKey;
+    labelInput.value = '';
+    modelInput.value = '';
+    urlInput.value = '';
+    keyInput.value = '';
+    saveData(false);
+    renderEditor();
+}
+
+function deleteAiPreset(index) {
+    if (!state.aiConfig.modelPresets || !state.aiConfig.modelPresets[index]) return;
+    let preset = state.aiConfig.modelPresets[index];
+    if (state.aiConfig.modelPresets.length <= 1) {
+        alert('至少保留一个模型配置');
+        return;
+    }
+    state.aiConfig.modelPresets.splice(index, 1);
+    if (state.aiConfig.activePresetLabel === preset.label) {
+        let first = state.aiConfig.modelPresets[0];
+        state.aiConfig.activePresetLabel = first.label;
+        state.aiConfig.model = first.model;
+        if (first.baseUrl) state.aiConfig.baseUrl = first.baseUrl;
+        if (first.apiKey !== undefined) state.aiConfig.apiKey = first.apiKey;
+    }
+    saveData(false);
+    renderEditor();
 }
 
 // AI 专用列表渲染（覆盖基础 renderFeatureList 的 ai 分支）

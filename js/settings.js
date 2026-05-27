@@ -47,20 +47,69 @@ function renderEditor() {
     document.getElementById('page-visibility-editor').innerHTML = visHtml;
 
     // AI 配置编辑器
-    if (!state.aiConfig) state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '', systemPrompt: '' };
+    if (!state.aiConfig) state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '', systemPrompt: '', modelPresets: [], activePresetLabel: '' };
     if (state.aiConfig.systemPrompt === undefined) state.aiConfig.systemPrompt = '';
+    // 兼容旧数据：没有 modelPresets 时从现有 model 迁移
+    if (!state.aiConfig.modelPresets) {
+        let existingModel = state.aiConfig.model || 'gpt-3.5-turbo';
+        let labelMap = { 'gpt-3.5-turbo': 'GPT-3.5 Turbo', 'gpt-4': 'GPT-4', 'gpt-4o': 'GPT-4o', 'deepseek-chat': 'DeepSeek Chat', 'deepseek-coder': 'DeepSeek Coder' };
+        let existingLabel = labelMap[existingModel] || existingModel;
+        state.aiConfig.modelPresets = [
+            { label: existingLabel, model: existingModel, baseUrl: state.aiConfig.baseUrl || 'https://api.openai.com/v1', apiKey: state.aiConfig.apiKey || '' },
+            { label: 'GPT-4o', model: 'gpt-4o', baseUrl: 'https://api.openai.com/v1', apiKey: '' },
+            { label: 'DeepSeek Chat', model: 'deepseek-chat', baseUrl: 'https://api.deepseek.com', apiKey: '' }
+        ];
+        state.aiConfig.activePresetLabel = existingLabel;
+    }
+    // 兼容旧预设：缺少 baseUrl/apiKey 则补上
+    state.aiConfig.modelPresets.forEach(p => {
+        if (!p.baseUrl) p.baseUrl = state.aiConfig.baseUrl || 'https://api.openai.com/v1';
+        if (!p.apiKey) p.apiKey = state.aiConfig.apiKey || '';
+    });
+
+    function maskKey(key) {
+        if (!key) return '(未设置)';
+        return key.length > 8 ? key.slice(0, 8) + '...' : '****';
+    }
+
+    let presets = state.aiConfig.modelPresets;
+    let activeLabel = state.aiConfig.activePresetLabel;
+
+    let presetOptions = presets.map((p, i) =>
+        `<option value="${i}" ${p.label === activeLabel ? 'selected' : ''}>${escapeHtml(p.label)} — ${escapeHtml(p.model)}</option>`
+    ).join('');
+
+    let presetItemsHtml = presets.map((p, i) =>
+        `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:#333;border-radius:4px;margin-bottom:4px;flex-wrap:wrap;">
+            <span style="flex:1;min-width:120px;"><strong>${escapeHtml(p.label)}</strong> → <code style="color:#7ec1f1;">${escapeHtml(p.model)}</code></span>
+            <span style="color:#aaa;font-size:0.85em;min-width:200px;">${escapeHtml(p.baseUrl)}</span>
+            <span style="color:#888;font-size:0.85em;min-width:80px;">${maskKey(p.apiKey)}</span>
+            <button onclick="deleteAiPreset(${i})" style="background:#c0392b;color:#fff;border:none;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:12px;">删除</button>
+        </div>`
+    ).join('');
+
     let aiConfigHtml = `<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:#2a2a2a;padding:12px 14px;border-radius:10px;">
-        <label style="display:flex;align-items:center;gap:8px;flex:1 1 100%;">API Base URL
-            <input type="text" id="ai-baseUrl" placeholder="https://api.openai.com/v1" value="${escapeHtml(state.aiConfig.baseUrl)}" onchange="updateAiConfig('baseUrl', this.value)" style="flex:1;">
+        <label style="display:flex;align-items:center;gap:8px;flex:1 1 100%;">切换配置
+            <select onchange="selectAiPreset(parseInt(this.value))" style="flex:1;padding:6px;border-radius:4px;border:1px solid #555;background:#333;color:white;font-size:13px;">
+                ${presetOptions}
+            </select>
         </label>
-        <label style="display:flex;align-items:center;gap:8px;flex:1 1 100%;">模型 (Model)
-            <input type="text" id="ai-model" placeholder="gpt-3.5-turbo" value="${escapeHtml(state.aiConfig.model)}" onchange="updateAiConfig('model', this.value)" style="flex:1;">
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;flex:1 1 100%;">API Key
-            <input type="password" id="ai-apiKey" placeholder="sk-..." value="${escapeHtml(state.aiConfig.apiKey)}" onchange="updateAiConfig('apiKey', this.value)" style="flex:1;">
-        </label>
+        <div style="flex:1 1 100%;border-top:1px solid #444;padding-top:8px;">
+            <div style="font-size:0.85em;color:#aaa;margin-bottom:6px;">已保存配置：</div>
+            ${presetItemsHtml || '<div style="color:#666;font-size:0.85em;">暂无配置，请添加</div>'}
+        </div>
+        <div style="flex:1 1 100%;border-top:1px solid #444;padding-top:10px;">
+            <div style="font-size:0.85em;color:#aaa;margin-bottom:6px;">新增配置：</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <input type="text" id="new-preset-label" placeholder="名称（如 DeepSeek）" style="flex:1 1 140px;padding:6px;border-radius:4px;border:1px solid #555;background:#333;color:white;">
+                <input type="text" id="new-preset-model" placeholder="模型 ID（如 deepseek-chat）" style="flex:1 1 140px;padding:6px;border-radius:4px;border:1px solid #555;background:#333;color:white;">
+                <input type="text" id="new-preset-url" placeholder="Base URL" style="flex:2 1 200px;padding:6px;border-radius:4px;border:1px solid #555;background:#333;color:white;">
+                <input type="password" id="new-preset-key" placeholder="API Key" style="flex:1 1 160px;padding:6px;border-radius:4px;border:1px solid #555;background:#333;color:white;">
+                <button onclick="addAiPreset()" style="background:#27ae60;color:#fff;border:none;border-radius:4px;padding:6px 14px;cursor:pointer;">+ 新增配置</button>
+            </div>
+        </div>
         <label style="display:flex;align-items:center;gap:8px;flex:1 1 100%;">系统提示词 (System Prompt)
-            <textarea id="ai-systemPrompt" placeholder="You are a helpful assistant." onchange="updateAiConfig('systemPrompt', this.value)" style="flex:1; height: 60px; font-family: inherit; padding: 4px; border-radius: 4px; border: 1px solid #555; background: #333; color: white;">${escapeHtml(state.aiConfig.systemPrompt)}</textarea>
+            <textarea id="ai-systemPrompt" placeholder="You are a helpful assistant." onchange="updateAiConfig('systemPrompt', this.value)" style="flex:1;height:60px;font-family:inherit;padding:4px;border-radius:4px;border:1px solid #555;background:#333;color:white;">${escapeHtml(state.aiConfig.systemPrompt)}</textarea>
         </label>
     </div>`;
     document.getElementById('ai-config-editor').innerHTML = aiConfigHtml;
