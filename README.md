@@ -19,52 +19,60 @@
 - **待办**：增删改、拖拽排序，本地存储
 - **提示词**：常用 prompt 收藏，一键复制
 - **诗词收藏**：手动加 / 把当前诗词收进列表 / 导出为 TXT
-- **3D 骰子**：基于 [@3d-dice/dice-box](https://www.npmjs.com/package/@3d-dice/dice-box)，可配置颗数与类型（d4/d6/d8/d10/d12/d20）
+- **3D 骰子**：基于 Three.js + Cannon.js 的物理骰子，支持公式配置（如 `3D6`、`2D20+1D8`），支持 D4/D6/D8/D10/D12/D20
 - **AI 对话**：OpenAI 兼容协议（DeepSeek / OpenAI / 任意 base_url），支持以下命令
   - `/new` 开新对话
   - `/save` 保存当前对话
   - `/delete` 删除当前已保存对话
+  - 支持多模型预设配置、系统提示词、流式输出
 
 ### 全局
+- 两套主题：默认暗色 / iOS 26 毛玻璃
 - 右侧面板宽度可拖拽（280–800px），状态持久化
 - 各功能模块可在设置里整体显示/隐藏
+- 内容字体大小可按模块独立调节
+- 聊天气泡宽度可调（50%–100%）
 - 设置面板支持完整 JSON 导入 / 导出，方便备份与迁移
 - 屏幕宽度 < 1100px 时自动切纵向布局
 
 ## 数据存储
 
-- `localStorage["e-desktop-data"]`：栏目、链接、颜色、AI 配置、骰子配置、面板宽度、诗词样式、页面可见性
+- `localStorage["e-desktop-data"]`：栏目、链接、颜色、AI 配置、骰子配置、面板宽度、诗词样式、页面可见性、主题、聊天气泡宽度、内容字体大小
 - `localStorage["e-desktop-side-data"]`：待办、提示词、收藏诗词、AI 对话历史
-- `link.json`：首次打开时的默认种子；也是导入 / 导出的标准格式
 
-加载顺序：先读 localStorage → 读不到则 `fetch('link.json')` → 再失败则使用 `app.js` 内嵌的 `DEFAULT_DATA`。
+加载顺序：先读 localStorage → 读不到则使用 `state.js` 内嵌的 `DEFAULT_DATA`。
 
 ## 使用
 
-直接双击 `index.html` 即可。若需要让 `fetch('link.json')` 在首次加载时生效（即不依赖内嵌默认），用任意本地静态服务器打开：
-
-```bash
-# 任选其一
-npx http-server .
-python -m http.server 8000
-```
-
-骰子模块依赖通过 CDN（unpkg）动态 import，无需 `npm install`。`package.json` 仅声明依赖以备本地化，运行时不读取。
+直接双击 `index.html` 即可。
 
 ## 文件结构
 
 ```
 vexpaer_go/
-├── index.html        # 页面骨架 + 设置模态框
-├── app.js            # 全部逻辑（约 1300 行，单文件）
-├── styles.css        # 暗色主题样式
-├── link.json         # 配置种子 / 备份样本
-├── package.json      # 仅声明骰子依赖
-├── assets/           # 骰子 wasm 与主题资源（备用本地化）
-└── public/           # 同上
+├── index.html          # 页面骨架 + 设置模态框
+├── js/
+│   ├── state.js        # 状态管理、默认数据、工具函数、持久化
+│   ├── app.js          # 初始化流程、导入导出
+│   ├── links.js        # 链接 / 栏目 CRUD 与拖拽
+│   ├── features.js     # 右侧面板功能（待办/提示词/诗词/可见性）
+│   ├── panel.js        # 右侧面板渲染与宽度拖拽
+│   ├── poem.js         # 诗词拉取与样式
+│   ├── dice.js         # 3D 物理骰子（Three.js + Cannon.js）
+│   ├── ai-chat.js      # AI 对话（流式 SSE、多预设）
+│   └── settings.js     # 设置弹窗、编辑器、主题切换
+├── css/
+│   ├── base.css        # 基础样式
+│   ├── layout.css      # 布局
+│   ├── buttons.css     # 按钮样式
+│   ├── right-panel.css # 右侧面板样式
+│   ├── settings.css    # 设置弹窗样式
+│   ├── responsive.css  # 响应式适配
+│   └── theme-ios26.css # iOS 26 毛玻璃主题
+└── .gitignore
 ```
 
 ## 注意
 
-- `link.json` 中包含 `aiConfig.apiKey`，提交到公共仓库前请清空或加 `.gitignore`
-- 修改不会自动回写 `link.json`，需在设置里点"导出 JSON"覆盖
+- AI 配置中的 `apiKey` 仅存于浏览器 localStorage，不会写入仓库文件
+- 修改不会自动回写本地文件，需在设置里点"导出 JSON"备份
