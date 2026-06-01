@@ -5,7 +5,7 @@ window.DEFAULT_DATA = JSON.parse(JSON.stringify({
     columns: [],
     links: [],
     colors: ["#0000ff", "#800080", "#ff0000", "#000000", "#ffffff"],
-    panelWidth: 800,
+    panelWidth: 900,
     theme: 'default',
     poemStyle: {
         color: '#e8e1c8',
@@ -27,6 +27,7 @@ window.DEFAULT_DATA = JSON.parse(JSON.stringify({
         activePresetLabel: 'OpenAI'
     },
     diceConfig: { formula: '3D6' },
+    chatBubbleWidth: 85,
     featureStyle: {
         todo: { fontSize: 15 },
         prompts: { fontSize: 15 },
@@ -40,7 +41,7 @@ let state = {
     columns: [],
     links: [],
     colors: ["#0000ff", "#800080", "#ff0000", "#000000", "#ffffff"],
-    panelWidth: 800,
+    panelWidth: 900,
     theme: 'default',
     poemStyle: {
         color: '#e8e1c8',
@@ -62,6 +63,7 @@ let state = {
         activePresetLabel: 'OpenAI'
     },
     diceConfig: { formula: '3D6' },
+    chatBubbleWidth: 85,
     featureStyle: {
         todo: { fontSize: 15 },
         prompts: { fontSize: 15 },
@@ -75,7 +77,7 @@ let draggedItem = { type: null, id: null };
 let activeFeature = null;
 let isResizingPanel = false;
 let resizeStartX = 0;
-let resizeStartWidth = 800;
+let resizeStartWidth = 900;
 
 // 工具函数
 function hexToRgb(hex) {

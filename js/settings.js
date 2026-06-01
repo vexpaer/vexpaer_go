@@ -159,16 +159,17 @@ function renderEditor() {
     </div>`;
     document.getElementById('dice-config-editor').innerHTML = diceConfigHtml;
 
-    // 面板宽度编辑器
-    let panelWidthHtml = `<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;background:#2a2a2a;padding:12px 14px;border-radius:10px;">
-        <label style="display:flex;align-items:center;gap:8px;">面板宽度
-            <input type="range" id="panel-width-range" min="280" max="800" step="10" value="${state.panelWidth}" oninput="updatePanelWidth(this.value)" style="width:160px;">
-            <input type="number" id="panel-width-input" min="280" max="800" step="10" value="${state.panelWidth}" onchange="updatePanelWidth(this.value)" style="width:80px;">
-            <span>px</span>
+    // 聊天气泡宽度编辑器
+    if (typeof state.chatBubbleWidth !== 'number' || Number.isNaN(state.chatBubbleWidth)) state.chatBubbleWidth = 85;
+    let chatBubbleWidthHtml = `<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;background:#2a2a2a;padding:12px 14px;border-radius:10px;">
+        <label style="display:flex;align-items:center;gap:8px;">气泡宽度
+            <input type="range" id="chat-bubble-width-range" min="50" max="100" step="1" value="${state.chatBubbleWidth}" oninput="updateChatBubbleWidth(this.value)" style="width:160px;">
+            <input type="number" id="chat-bubble-width-input" min="50" max="100" step="1" value="${state.chatBubbleWidth}" onchange="updateChatBubbleWidth(this.value)" style="width:80px;">
+            <span>%</span>
         </label>
-        <span style="color:#888;font-size:0.85em;">范围 280 ~ 800，也可直接拖拽面板左边缘</span>
+        <span style="color:#888;font-size:0.85em;">控制用户和 AI 聊天气泡的最大宽度占比，范围 50% ~ 100%</span>
     </div>`;
-    document.getElementById('panel-width-editor').innerHTML = panelWidthHtml;
+    document.getElementById('chat-bubble-width-editor').innerHTML = chatBubbleWidthHtml;
 
     // 诗词样式编辑器
     let poemStyleHtml = `<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:#2a2a2a;padding:12px 14px;border-radius:10px;">

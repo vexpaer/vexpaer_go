@@ -33,7 +33,7 @@ async function init() {
             if (!state.diceConfig) state.diceConfig = { formula: '3D6' };
             ensurePageVisibility();
             ensureTheme();
-            if (typeof state.panelWidth !== 'number' || Number.isNaN(state.panelWidth)) state.panelWidth = 800;
+            if (typeof state.panelWidth !== 'number' || Number.isNaN(state.panelWidth)) state.panelWidth = 900;
         } catch (e) {
             state = JSON.parse(JSON.stringify(window.DEFAULT_DATA));
         }
@@ -50,7 +50,7 @@ async function init() {
                 migrateAiConfig();
                 ensurePageVisibility();
                 ensureTheme();
-                if (typeof state.panelWidth !== 'number' || Number.isNaN(state.panelWidth)) state.panelWidth = 800;
+                if (typeof state.panelWidth !== 'number' || Number.isNaN(state.panelWidth)) state.panelWidth = 900;
                 saveData(false);
             } else {
                 throw new Error();
@@ -82,6 +82,7 @@ function initRightPanel() {
     bindFeatureInputEnter('prompts-input', 'prompts');
     bindFeatureInputEnter('poem-input', 'poem');
     applyPageVisibility();
+    applyChatBubbleWidth();
     initRightPanelResize();
 }
 

@@ -16,17 +16,10 @@ function initRightPanelResize() {
     let panel = document.querySelector('.right-panel');
     if (!panel) return;
 
-    let legacyWidth = localStorage.getItem('e-desktop-right-width');
-    if (legacyWidth !== null) {
-        let w = parseInt(legacyWidth, 10);
-        if (!Number.isNaN(w)) state.panelWidth = Math.max(280, Math.min(800, w));
-        localStorage.removeItem('e-desktop-right-width');
-        saveData(false);
-    }
     if (typeof state.panelWidth !== 'number' || Number.isNaN(state.panelWidth)) {
-        state.panelWidth = 800;
+        state.panelWidth = 900;
     }
-    state.panelWidth = Math.max(280, Math.min(800, state.panelWidth));
+    state.panelWidth = Math.max(280, state.panelWidth);
     if (window.innerWidth > 1100) {
         panel.style.width = state.panelWidth + 'px';
     }
@@ -48,15 +41,20 @@ function initRightPanelResize() {
     });
 }
 
-function updatePanelWidth(value) {
-    let w = Math.max(280, Math.min(800, Number(value) || 800));
-    state.panelWidth = w;
-    let panel = document.querySelector('.right-panel');
-    if (panel && window.innerWidth > 1100) {
-        panel.style.width = w + 'px';
+function applyChatBubbleWidth() {
+    let w = Math.max(50, Math.min(100, Number(state.chatBubbleWidth) || 85));
+    let container = document.querySelector('.chat-container');
+    if (container) {
+        container.style.setProperty('--chat-bubble-width', w + '%');
     }
-    let range = document.getElementById('panel-width-range');
-    let input = document.getElementById('panel-width-input');
+}
+
+function updateChatBubbleWidth(value) {
+    let w = Math.max(50, Math.min(100, Number(value) || 85));
+    state.chatBubbleWidth = w;
+    applyChatBubbleWidth();
+    let range = document.getElementById('chat-bubble-width-range');
+    let input = document.getElementById('chat-bubble-width-input');
     if (range) range.value = w;
     if (input) input.value = w;
     saveData(false);
