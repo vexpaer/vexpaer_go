@@ -115,6 +115,8 @@
             <div class="controls">
                 <button class="btn-success" onclick="exportJson()">⬇️ 导出 JSON</button>
                 <button class="btn-success" onclick="document.getElementById('import-file').click()">⬆️ 导入 JSON</button>
+                <button class="btn-success" onclick="copyJson()">📋 复制 JSON</button>
+                <button class="btn-success" onclick="pasteJson()">📥 粘贴 JSON</button>
                 <input type="file" id="import-file" style="display:none" accept=".json" onchange="importJson(event)">
             </div>
 

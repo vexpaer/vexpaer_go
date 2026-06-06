@@ -86,9 +86,13 @@ function initRightPanel() {
     initRightPanelResize();
 }
 
-function exportJson() {
+function getExportData() {
     let exportData = Object.assign({}, state, { sideState: sideState });
-    let dataStr = JSON.stringify(exportData, null, 2);
+    return JSON.stringify(exportData, null, 2);
+}
+
+function exportJson() {
+    let dataStr = getExportData();
     let blob = new Blob([dataStr], { type: "application/json" });
     let url = URL.createObjectURL(blob);
     let a = document.createElement('a');
@@ -98,40 +102,102 @@ function exportJson() {
     URL.revokeObjectURL(url);
 }
 
+function applyImportedJsonText(jsonText, successMessage) {
+    try {
+        let data = JSON.parse(jsonText);
+        if (data.columns && data.links) {
+            if (data.sideState) {
+                sideState = data.sideState;
+                saveSideData();
+                delete data.sideState;
+                ['todo', 'prompts', 'poem', 'dice', 'ai'].forEach(renderFeatureList);
+                currentAiChat = { id: null, messages: [] };
+                if (typeof renderAiChat === 'function') renderAiChat();
+            }
+            state = data;
+            ensurePoemStyle();
+            ensureFeatureStyle();
+            ensurePageVisibility();
+            ensureTheme();
+            if (!state.aiConfig) state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' };
+            migrateAiConfig();
+            saveData();
+            applyTheme();
+            applyFeatureStyles();
+            applyPageVisibility();
+            applyChatBubbleWidth();
+            alert(successMessage);
+            return true;
+        }
+        alert('JSON 格式不匹配，缺少 columns 或 links 字段，导入失败。');
+    } catch (err) {
+        alert('解析 JSON 出错！');
+    }
+    return false;
+}
+
 function importJson(event) {
     let file = event.target.files[0];
     if (!file) return;
     let reader = new FileReader();
     reader.onload = e => {
-        try {
-            let data = JSON.parse(e.target.result);
-            if (data.columns && data.links) {
-                if (data.sideState) {
-                    sideState = data.sideState;
-                    saveSideData();
-                    delete data.sideState;
-                    ['todo', 'prompts', 'poem', 'dice', 'ai'].forEach(renderFeatureList);
-                    currentAiChat = { id: null, messages: [] };
-                    if (typeof renderAiChat === 'function') renderAiChat();
-                }
-                state = data;
-                ensurePoemStyle();
-                ensurePageVisibility();
-                ensureTheme();
-                if (!state.aiConfig) state.aiConfig = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', apiKey: '' };
-                migrateAiConfig();
-                saveData();
-                applyTheme();
-                alert('JSON 导入加载成功！');
-            } else {
-                alert('JSON 格式不匹配，缺少 columns 或 links 字段，导入失败。');
-            }
-        } catch (err) {
-            alert('解析 JSON 文件出错！');
-        }
+        applyImportedJsonText(e.target.result, 'JSON 导入加载成功！');
         event.target.value = '';
     };
     reader.readAsText(file);
+}
+
+function fallbackCopyText(text) {
+    let textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+        let copied = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        return copied;
+    } catch (err) {
+        document.body.removeChild(textarea);
+        return false;
+    }
+}
+
+async function copyJson() {
+    let dataStr = getExportData();
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(dataStr);
+        } else if (!fallbackCopyText(dataStr)) {
+            throw new Error('Clipboard write is unavailable');
+        }
+        alert('JSON 已复制到剪贴板！');
+    } catch (err) {
+        if (fallbackCopyText(dataStr)) {
+            alert('JSON 已复制到剪贴板！');
+        } else {
+            alert('复制 JSON 失败，浏览器未允许访问剪贴板。');
+        }
+    }
+}
+
+async function pasteJson() {
+    let jsonText = '';
+    try {
+        if (!navigator.clipboard || !navigator.clipboard.readText) {
+            throw new Error('Clipboard read is unavailable');
+        }
+        jsonText = await navigator.clipboard.readText();
+    } catch (err) {
+        jsonText = prompt('浏览器未允许直接读取剪贴板，请在这里粘贴 JSON：') || '';
+    }
+    if (!jsonText.trim()) {
+        alert('剪贴板中没有可导入的 JSON。');
+        return;
+    }
+    applyImportedJsonText(jsonText, '剪贴板 JSON 粘贴导入成功！');
 }
 
 window.onload = async function() {
